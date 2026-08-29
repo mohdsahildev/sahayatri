@@ -59,7 +59,7 @@ async function proxy(
   
   if (setCookie) {
     let rewrittenCookie = setCookie
-      .replace(/;\s*Path=[^;]*/i, "; Path=/api/backend/auth")
+      .replace(/;\s*Path=[^;]*/i, "; Path=/")
       .replace(/;\s*SameSite=[^;]*/i, "; SameSite=Lax");
   
     if (process.env.NODE_ENV !== "production") {
