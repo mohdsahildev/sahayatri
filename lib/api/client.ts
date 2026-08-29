@@ -1,11 +1,5 @@
 import { useAuthStore } from "@/lib/stores/auth.store";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
-if (!API_URL) {
-  throw new Error("NEXT_PUBLIC_API_URL is not configured");
-}
-
 type ApiFetchOptions = RequestInit & {
   accessToken?: string;
   _isRetry?: boolean;
@@ -17,9 +11,10 @@ export async function apiFetch<T>(
 ): Promise<T> {
   const { accessToken, _isRetry, ...fetchOptions } = options;
 
-  const token = accessToken ?? useAuthStore.getState().accessToken;
+  const token =
+    accessToken ?? useAuthStore.getState().accessToken;
 
-  const response = await fetch(`${API_URL}/api${endpoint}`, {
+  const response = await fetch(`/api/backend${endpoint}`, {
     ...fetchOptions,
     credentials: "include",
     headers: {
@@ -34,10 +29,13 @@ export async function apiFetch<T>(
   });
 
   if (response.status === 401 && !_isRetry) {
-    const refreshResponse = await fetch(`${API_URL}/api/auth/refresh-token`, {
-      method: "POST",
-      credentials: "include",
-    });
+    const refreshResponse = await fetch(
+      "/api/backend/auth/refresh-token",
+      {
+        method: "POST",
+        credentials: "include",
+      }
+    );
 
     if (refreshResponse.ok) {
       const refreshData = await refreshResponse.json();
@@ -46,7 +44,9 @@ export async function apiFetch<T>(
       const { user } = useAuthStore.getState();
 
       if (user) {
-        useAuthStore.getState().setAuth(user, newAccessToken);
+        useAuthStore
+          .getState()
+          .setAuth(user, newAccessToken);
       }
 
       return apiFetch<T>(endpoint, {
@@ -62,7 +62,9 @@ export async function apiFetch<T>(
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || "Something went wrong");
+    throw new Error(
+      data.message || "Something went wrong"
+    );
   }
 
   return data;
