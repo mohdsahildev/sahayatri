@@ -2,20 +2,44 @@
 
 import { useState } from "react";
 import { CalendarDays, MapPin, Search, ArrowRight } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function RideSearch() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [date, setDate] = useState("");
 
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   function handleSearch(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    console.log({
-      from,
-      to,
-      date,
-    });
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (from.trim()) {
+      params.set("from", from.trim());
+    } else {
+      params.delete("from");
+    }
+
+    if (to.trim()) {
+      params.set("to", to.trim());
+    } else {
+      params.delete("to");
+    }
+
+    if (date) {
+      params.set("date", date);
+    } else {
+      params.delete("date");
+    }
+
+    params.delete("page");
+
+    const query = params.toString();
+
+    router.push(query ? `/?${query}` : "/");
   }
 
   return (

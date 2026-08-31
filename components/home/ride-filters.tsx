@@ -1,18 +1,47 @@
 "use client";
 
-import { useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { ChevronDown, SlidersHorizontal } from "lucide-react";
 
 const sortOptions = [
-  "Recommended",
-  "Soonest departure",
-  "Lowest price",
-  "Closest",
+  { label: "Recommended", value: "" },
+  { label: "Soonest departure", value: "departureTime" },
+  { label: "Lowest price", value: "price" },
+  { label: "Closest", value: "distance" },
 ];
 
 export default function RideFilters() {
-  const [sort, setSort] = useState("Recommended");
-  const [showFilters, setShowFilters] = useState(false);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const sort = searchParams.get("sort") ?? "";
+  const showFilters = searchParams.get("filters") === "open";
+
+  function updateParam(key: string, value: string) {
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (value) {
+      params.set(key, value);
+    } else {
+      params.delete(key);
+    }
+
+    params.delete("page");
+
+    router.push(`/?${params.toString()}`);
+  }
+
+  function toggleFilters() {
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (showFilters) {
+      params.delete("filters");
+    } else {
+      params.set("filters", "open");
+    }
+
+    router.push(`/?${params.toString()}`);
+  }
 
   return (
     <section className="mt-10">
@@ -28,10 +57,9 @@ export default function RideFilters() {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Filter */}
           <button
             type="button"
-            onClick={() => setShowFilters((current) => !current)}
+            onClick={toggleFilters}
             className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 font-sans text-sm font-semibold transition ${
               showFilters
                 ? "border-primary bg-primary/5 text-primary"
@@ -42,17 +70,18 @@ export default function RideFilters() {
             Filter
           </button>
 
-          {/* Sort */}
           <div className="relative">
             <select
               value={sort}
-              onChange={(event) => setSort(event.target.value)}
+              onChange={(event) =>
+                updateParam("sort", event.target.value)
+              }
               className="appearance-none rounded-xl border border-slate-200 bg-white py-2.5 pl-4 pr-10 font-sans text-sm font-semibold text-secondary outline-none transition hover:border-primary focus:border-primary"
               aria-label="Sort rides"
             >
               {sortOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
+                <option key={option.value} value={option.value}>
+                  {option.label}
                 </option>
               ))}
             </select>
@@ -66,93 +95,102 @@ export default function RideFilters() {
         </div>
       </div>
 
-      {/* Filter panel */}
       {showFilters && (
         <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-5">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div>
-              <label
-                htmlFor="departure-time"
-                className="block font-sans text-xs font-semibold text-slate-500"
-              >
-                Departure time
-              </label>
+            <FilterSelect
+              label="Departure time"
+              value={searchParams.get("timeFrom") ?? ""}
+              onChange={(value) =>
+                updateParam("timeFrom", value)
+              }
+              options={[
+                ["", "Any time"],
+                ["06:00", "Morning"],
+                ["12:00", "Afternoon"],
+                ["17:00", "Evening"],
+                ["21:00", "Night"],
+              ]}
+            />
 
-              <select
-                id="departure-time"
-                className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-secondary outline-none focus:border-primary"
-                defaultValue=""
-              >
-                <option value="">Any time</option>
-                <option value="morning">Morning</option>
-                <option value="afternoon">Afternoon</option>
-                <option value="evening">Evening</option>
-                <option value="night">Night</option>
-              </select>
-            </div>
+            <FilterSelect
+              label="Price"
+              value={searchParams.get("maxPrice") ?? ""}
+              onChange={(value) =>
+                updateParam("maxPrice", value)
+              }
+              options={[
+                ["", "Any price"],
+                ["200", "Under ₹200"],
+                ["500", "Under ₹500"],
+                ["1000", "Under ₹1000"],
+              ]}
+            />
 
-            <div>
-              <label
-                htmlFor="price"
-                className="block font-sans text-xs font-semibold text-slate-500"
-              >
-                Price
-              </label>
+            <FilterSelect
+              label="Available seats"
+              value={searchParams.get("minSeats") ?? ""}
+              onChange={(value) =>
+                updateParam("minSeats", value)
+              }
+              options={[
+                ["", "Any"],
+                ["1", "1+ seat"],
+                ["2", "2+ seats"],
+                ["3", "3+ seats"],
+              ]}
+            />
 
-              <select
-                id="price"
-                className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-secondary outline-none focus:border-primary"
-                defaultValue=""
-              >
-                <option value="">Any price</option>
-                <option value="low">Under ₹200</option>
-                <option value="medium">₹200 – ₹500</option>
-                <option value="high">₹500+</option>
-              </select>
-            </div>
-
-            <div>
-              <label
-                htmlFor="seats"
-                className="block font-sans text-xs font-semibold text-slate-500"
-              >
-                Available seats
-              </label>
-
-              <select
-                id="seats"
-                className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-secondary outline-none focus:border-primary"
-                defaultValue=""
-              >
-                <option value="">Any</option>
-                <option value="1">1+ seat</option>
-                <option value="2">2+ seats</option>
-                <option value="3">3+ seats</option>
-              </select>
-            </div>
-
-            <div>
-              <label
-                htmlFor="distance"
-                className="block font-sans text-xs font-semibold text-slate-500"
-              >
-                Distance
-              </label>
-
-              <select
-                id="distance"
-                className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-secondary outline-none focus:border-primary"
-                defaultValue=""
-              >
-                <option value="">Any distance</option>
-                <option value="5">Within 5 km</option>
-                <option value="10">Within 10 km</option>
-                <option value="25">Within 25 km</option>
-              </select>
-            </div>
+            <FilterSelect
+              label="Vehicle type"
+              value={searchParams.get("vehicleType") ?? ""}
+              onChange={(value) =>
+                updateParam("vehicleType", value)
+              }
+              options={[
+                ["", "Any vehicle"],
+                ["car", "Car"],
+                ["bike", "Bike"],
+                ["suv", "SUV"],
+              ]}
+            />
           </div>
         </div>
       )}
     </section>
+  );
+}
+
+interface FilterSelectProps {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: [string, string][];
+}
+
+function FilterSelect({
+  label,
+  value,
+  onChange,
+  options,
+}: FilterSelectProps) {
+  return (
+    <div>
+      <label className="block font-sans text-xs font-semibold text-slate-500">
+        {label}
+      </label>
+
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-secondary outline-none focus:border-primary"
+      >
+        {options.map(([optionValue, optionLabel]) => (
+          <option key={optionValue} value={optionValue}>
+            {optionLabel}
+          </option>
+        ))}
+      </select>
+    </div>
   );
 }

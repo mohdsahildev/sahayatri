@@ -66,25 +66,23 @@ export default function RideCard({ ride }: RideCardProps) {
       </div>
 
       {/* Route */}
-      <div className="mt-6 flex items-center gap-3">
-        <div className="min-w-0">
+      <div className="mt-6 flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3">
+        <div className="min-w-0 w-full sm:w-auto">
           <p className="truncate font-sans text-base font-bold text-secondary">
             {ride.from}
           </p>
         </div>
 
-        <div className="flex min-w-12 flex-1 items-center gap-2">
-          <div className="h-px flex-1 bg-slate-300" />
+        <div className="flex items-center justify-center sm:flex-1">
           <ArrowRight
             size={18}
             strokeWidth={1.8}
-            className="shrink-0 text-primary"
+            className="shrink-0 text-primary rotate-90 sm:rotate-0"
           />
-          <div className="h-px flex-1 bg-slate-300" />
         </div>
 
-        <div className="min-w-0 text-right">
-          <p className="truncate font-sans text-base font-bold text-secondary">
+        <div className="min-w-0 w-full sm:w-auto">
+          <p className="truncate font-sans text-base font-bold text-secondary sm:text-right">
             {ride.to}
           </p>
         </div>
