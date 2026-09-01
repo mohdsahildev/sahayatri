@@ -56,19 +56,19 @@ async function proxy(
 
   // Forward Set-Cookie from backend → browser.
   const setCookie = backendResponse.headers.get("set-cookie");
-  
+
   if (setCookie) {
     let rewrittenCookie = setCookie
       .replace(/;\s*Path=[^;]*/i, "; Path=/")
       .replace(/;\s*SameSite=[^;]*/i, "; SameSite=Lax");
-  
+
     if (process.env.NODE_ENV !== "production") {
       rewrittenCookie = rewrittenCookie.replace(/;\s*Secure/gi, "");
     }
-  
+
     responseHeaders.set("set-cookie", rewrittenCookie);
   }
-  
+
   const contentTypeResponse =
     backendResponse.headers.get("content-type");
 

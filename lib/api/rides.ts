@@ -117,3 +117,52 @@ export function mapApiRideToRide(ride: ApiRide): Ride {
     description: ride.description,
   };
 }
+
+export interface CreateRideRequest {
+  source: RideLocation;
+  destination: RideLocation;
+  departureTime: string;
+  duration: number;
+  seatsAvailable: number;
+  price: number;
+  description?: string;
+  vehicle?: {
+    type: string;
+    brand: string;
+    model: string;
+    number: string;
+    seats?: number;
+  };
+  preferences?: {
+    womenOnly?: boolean;
+    verifiedOnly?: boolean;
+    smokingAllowed?: boolean;
+    musicAllowed?: boolean;
+    petsAllowed?: boolean;
+    acAvailable?: boolean;
+    luggageSpace?: boolean;
+    conversationLevel?: string;
+    genderPreference?: string;
+  };
+}
+
+interface CreateRideResponse {
+  success: boolean;
+  message: string;
+  data: {
+    _id: string;
+    status: string;
+  };
+}
+
+export async function createRide(
+  data: CreateRideRequest
+) {
+  return serverApiFetch<CreateRideResponse>(
+    "/api/rides",
+    {
+      method: "POST",
+      body: JSON.stringify(data),
+    }
+  );
+}

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { ArrowRight, Clock3, MapPin, Loader2 } from "lucide-react";
 import { apiFetch } from "@/lib/api/client";
+import { useAuthStore } from "@/lib/stores/auth.store";
 
 interface NearbyRide {
   _id: string;
@@ -15,6 +16,26 @@ interface NearbyRide {
   };
   departureTime: string;
   price: number;
+}
+
+interface UserRide {
+  _id: string;
+  source: {
+    name: string;
+  };
+  destination: {
+    name: string;
+  };
+  departureTime: string;
+}
+
+interface MyRidesResponse {
+  success: boolean;
+  message: string;
+  data: {
+    createdRides: UserRide[];
+    joinedRides: UserRide[];
+  };
 }
 
 interface NearbyRidesResponse {
@@ -37,9 +58,17 @@ type LocationState =
   | "error";
 
 export default function NearbyRides() {
+  const isAuthenticated = useAuthStore(
+    (state) => state.isAuthenticated
+  );
+
   const [rides, setRides] = useState<NearbyRide[]>([]);
   const [locationState, setLocationState] =
     useState<LocationState>("loading");
+
+  const [recentRides, setRecentRides] = useState<UserRide[]>([]);
+  const [recentActivityState, setRecentActivityState] =
+    useState<"loading" | "success" | "error">("loading");
 
   const fetchNearbyRides = useCallback(() => {
     if (!navigator.geolocation) {
@@ -98,9 +127,50 @@ export default function NearbyRides() {
     );
   }, []);
 
+  const fetchRecentActivity = useCallback(async () => {
+    try {
+      const response =
+        await apiFetch<MyRidesResponse>(
+          "/rides/user/me"
+        );
+      
+      const created = response.data.createdRides ?? [];
+      const joined = response.data.joinedRides ?? [];
+
+      const combined = [...created, ...joined]
+        .sort(
+          (a, b) =>
+            new Date(b.departureTime).getTime() -
+            new Date(a.departureTime).getTime()
+        )
+        .slice(0, 2);
+      
+      setRecentRides(combined);
+      setRecentActivityState("success");
+    } catch (error) {
+      console.error(
+        "Failed to fetch recent activity:",
+        error
+      );
+    
+      setRecentActivityState("error");
+    }
+  }, []);
+
   useEffect(() => {
-    fetchNearbyRides();
-  }, [fetchNearbyRides]);
+  fetchNearbyRides();
+
+  if (isAuthenticated) {
+      fetchRecentActivity();
+    } else {
+      setRecentActivityState("success");
+      setRecentRides([]);
+    }
+  }, [
+    fetchNearbyRides,
+    fetchRecentActivity,
+    isAuthenticated,
+  ]);
 
   function formatDepartureTime(
     departureTime: string
@@ -263,65 +333,92 @@ export default function NearbyRides() {
             Recent activity
           </h2>
 
+
           <Link
             href="/my-rides"
             className="text-xs font-semibold text-primary hover:text-secondary"
-          >
+            >
             View all
           </Link>
         </div>
 
-        <div className="mt-4 divide-y divide-slate-100">
-          {/* Keep the current mock activity for now */}
-          <Link
-            href="/rides/ride-1"
-            className="flex items-center gap-3 py-3 first:pt-0"
-          >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary font-sans text-xs font-bold text-white">
-              A
-            </div>
+        {!isAuthenticated && (
+          <div className="mt-4 rounded-xl bg-neutral p-4 text-center">
+            <p className="text-sm font-semibold text-secondary">
+              Log in to see your recent activity
+            </p>
+            <p className="mt-1 text-xs leading-5 text-slate-500">
+              Your rides and bookings will appear here.
+            </p>
+            <Link
+              href="/login"
+              className="mt-3 inline-flex rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white transition hover:bg-secondary"
+            >
+              Log in
+            </Link>
+          </div>
+        )}
 
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-sans text-sm font-semibold text-secondary">
-                Arjun
+        {isAuthenticated && recentActivityState === "loading" && (
+          <div className="mt-4 py-4 text-center text-xs text-slate-500">
+            Loading recent activity...
+          </div>
+        )}
+
+        {isAuthenticated && recentActivityState === "error" && (
+          <div className="mt-4 rounded-xl bg-neutral p-4 text-center">
+            <p className="text-sm font-semibold text-secondary">
+              Couldn't load recent activity
+            </p>
+          </div>
+        )}
+
+        {isAuthenticated && recentActivityState === "success" &&
+          recentRides.length === 0 && (
+            <div className="mt-4 rounded-xl bg-neutral p-4 text-center">
+              <p className="text-sm font-semibold text-secondary">
+                No recent activity
               </p>
-
-              <p className="mt-0.5 truncate text-xs text-slate-500">
-                Kochi → Bangalore
+          
+              <p className="mt-1 text-xs text-slate-500">
+                Your recent rides will appear here.
               </p>
             </div>
+          )}
 
-            <ArrowRight
-              size={15}
-              className="shrink-0 text-slate-400"
-            />
-          </Link>
-
-          <Link
-            href="/rides/ride-2"
-            className="flex items-center gap-3 py-3 last:pb-0"
-          >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-tertiary font-sans text-xs font-bold text-secondary">
-              M
+        {isAuthenticated && recentActivityState === "success" &&
+          recentRides.length > 0 && (
+            <div className="mt-4 divide-y divide-slate-100">
+              {recentRides.map((ride) => (
+                <Link
+                  key={ride._id}
+                  href={`/rides/${ride._id}`}
+                  className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
+                >
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary font-sans text-xs font-bold text-white">
+                    R
+                  </div>
+              
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-sans text-sm font-semibold text-secondary">
+                      {ride.source.name}
+                    </p>
+              
+                    <p className="mt-0.5 truncate text-xs text-slate-500">
+                      → {ride.destination.name}
+                    </p>
+                  </div>
+              
+                  <ArrowRight
+                    size={15}
+                    className="shrink-0 text-slate-400"
+                  />
+                </Link>
+              ))}
             </div>
-
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-sans text-sm font-semibold text-secondary">
-                Meera
-              </p>
-
-              <p className="mt-0.5 truncate text-xs text-slate-500">
-                Kozhikode → Kochi
-              </p>
-            </div>
-
-            <ArrowRight
-              size={15}
-              className="shrink-0 text-slate-400"
-            />
-          </Link>
-        </div>
+          )}
       </section>
+
     </aside>
   );
 }

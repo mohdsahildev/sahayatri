@@ -1,8 +1,36 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
-import {Bell} from "lucide-react"
+import { Bell, LogOut } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { logout } from "@/lib/api/auth";
+import { useAuthStore } from "@/lib/stores/auth.store";
 
 export default function Navbar() {
+  const router = useRouter();
+
+  const accessToken = useAuthStore(
+    (state) => state.accessToken
+  );
+
+  const clearAuth = useAuthStore(
+    (state) => state.clearAuth
+  );
+
+  async function handleLogout() {
+    try {
+      if (accessToken) {
+        await logout(accessToken);
+      }
+    } catch (error) {
+      console.error("Logout failed:", error);
+    } finally {
+      clearAuth();
+      router.push("/login");
+    }
+  }
+
   return (
     <header className="border-b border-slate-200 bg-white">
       <nav className="mx-auto flex h-18 max-w-7xl items-center justify-between px-4 md:px-8">
@@ -28,7 +56,7 @@ export default function Navbar() {
         {/* Main navigation */}
         <div className="hidden items-center gap-8 md:flex">
           <Link
-            href="/"
+            href="/home"
             className="font-sans text-sm font-semibold text-secondary"
           >
             Home
@@ -73,6 +101,17 @@ export default function Navbar() {
           >
             + Post Ride
           </Link>
+
+          {/* Temporary logout */}
+          <button
+            type="button"
+            onClick={handleLogout}
+            aria-label="Log out"
+            title="Log out"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-slate-500 transition hover:bg-red-50 hover:text-red-600"
+          >
+            <LogOut size={18} strokeWidth={1.8} />
+          </button>
         </div>
       </nav>
     </header>
