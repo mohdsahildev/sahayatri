@@ -1,39 +1,12 @@
+import Link from "next/link";
 import Navbar from "@/components/layout/navbar";
-import { serverApiFetch } from "@/lib/api/server-client";
-
-interface MyRide {
-  _id: string;
-  source: {
-    name: string;
-  };
-  destination: {
-    name: string;
-  };
-  departureTime: string;
-  seatsAvailable: number;
-  bookedSeats: number;
-  price: number;
-  status: string;
-}
-
-interface MyRidesResponse {
-  success: boolean;
-  message: string;
-  data: {
-    createdRides: MyRide[];
-    joinedRides: MyRide[];
-  };
-}
+import { getMyRides, type MyRide } from "@/lib/api/rides";
 
 export default async function MyRidesPage() {
-  let data: MyRidesResponse["data"];
+  let data: { createdRides: MyRide[]; joinedRides: MyRide[] };
 
   try {
-    const response = await serverApiFetch<MyRidesResponse>(
-      "/api/rides/user/me"
-    );
-
-    data = response.data;
+    data = await getMyRides();
   } catch {
     return (
       <>
@@ -54,6 +27,9 @@ export default async function MyRidesPage() {
     );
   }
 
+  const createdRides = data?.createdRides ?? [];
+  const joinedRides = data?.joinedRides ?? [];
+
   return (
     <>
       <Navbar />
@@ -65,23 +41,23 @@ export default async function MyRidesPage() {
           </h1>
 
           <p className="mt-1 text-sm text-slate-500">
-            Manage the rides you've created and joined.
+            Manage the rides you&apos;ve created and joined.
           </p>
         </div>
 
         {/* Created rides */}
         <section className="mt-8">
           <h2 className="font-sans text-xl font-bold text-secondary">
-            Rides you've created
+            Rides you&apos;ve created
           </h2>
 
-          {data.createdRides.length === 0 ? (
+          {createdRides.length === 0 ? (
             <p className="mt-4 text-sm text-slate-500">
-              You haven't created any rides yet.
+              You haven&apos;t created any rides yet.
             </p>
           ) : (
             <div className="mt-4 space-y-4">
-              {data.createdRides.map((ride) => (
+              {createdRides.map((ride) => (
                 <RideItem key={ride._id} ride={ride} />
               ))}
             </div>
@@ -91,16 +67,16 @@ export default async function MyRidesPage() {
         {/* Joined rides */}
         <section className="mt-10">
           <h2 className="font-sans text-xl font-bold text-secondary">
-            Rides you've joined
+            Rides you&apos;ve joined
           </h2>
 
-          {data.joinedRides.length === 0 ? (
+          {joinedRides.length === 0 ? (
             <p className="mt-4 text-sm text-slate-500">
-              You haven't joined any rides yet.
+              You haven&apos;t joined any rides yet.
             </p>
           ) : (
             <div className="mt-4 space-y-4">
-              {data.joinedRides.map((ride) => (
+              {joinedRides.map((ride) => (
                 <RideItem key={ride._id} ride={ride} />
               ))}
             </div>
@@ -115,49 +91,51 @@ function RideItem({ ride }: { ride: MyRide }) {
   const departure = new Date(ride.departureTime);
 
   return (
-    <article className="rounded-2xl border border-slate-200 bg-white p-5">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <p className="font-sans text-base font-bold text-secondary">
-            {ride.source.name}
-          </p>
+    <Link href={`/rides/${ride._id}`} className="block transition hover:opacity-95">
+      <article className="rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-primary/30 hover:shadow-sm">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="font-sans text-base font-bold text-secondary">
+              {ride.source.name}
+            </p>
 
-          <p className="mt-1 text-sm text-slate-500">
-            → {ride.destination.name}
-          </p>
+            <p className="mt-1 text-sm text-slate-500">
+              → {ride.destination.name}
+            </p>
+          </div>
+
+          <span className="shrink-0 font-sans text-lg font-bold text-primary">
+            ₹{ride.price}
+          </span>
         </div>
 
-        <span className="shrink-0 font-sans text-lg font-bold text-primary">
-          ₹{ride.price}
-        </span>
-      </div>
+        <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-500">
+          <span>
+            {departure.toLocaleDateString("en-IN", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            })}
+          </span>
 
-      <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-500">
-        <span>
-          {departure.toLocaleDateString("en-IN", {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-          })}
-        </span>
+          <span>
+            {departure.toLocaleTimeString("en-IN", {
+              hour: "numeric",
+              minute: "2-digit",
+            })}
+          </span>
 
-        <span>
-          {departure.toLocaleTimeString("en-IN", {
-            hour: "numeric",
-            minute: "2-digit",
-          })}
-        </span>
+          <span>
+            {ride.bookedSeats}/{ride.seatsAvailable} seats booked
+          </span>
+        </div>
 
-        <span>
-          {ride.bookedSeats}/{ride.seatsAvailable} seats booked
-        </span>
-      </div>
-
-      <div className="mt-4">
-        <span className="rounded-full bg-neutral px-3 py-1 text-xs font-semibold capitalize text-secondary">
-          {ride.status}
-        </span>
-      </div>
-    </article>
+        <div className="mt-4">
+          <span className="rounded-full bg-neutral px-3 py-1 text-xs font-semibold capitalize text-secondary">
+            {ride.status}
+          </span>
+        </div>
+      </article>
+    </Link>
   );
 }

@@ -166,3 +166,44 @@ export async function createRide(
     }
   );
 }
+
+export interface MyRide {
+  _id: string;
+  driver: string;
+  source: RideLocation;
+  destination: RideLocation;
+  departureTime: string;
+  duration?: number;
+  estimatedEndTime?: string;
+  seatsAvailable: number;
+  bookedSeats: number;
+  price: number;
+  description?: string;
+  status: string;
+  vehicle?: {
+    type?: string;
+    brand?: string;
+    model?: string;
+    number?: string;
+    image?: string;
+    verified?: boolean;
+  };
+}
+
+interface MyRidesResponse {
+  success: boolean;
+  message: string;
+  data: {
+    createdRides: MyRide[];
+    joinedRides: MyRide[];
+  };
+}
+
+export async function getMyRides() {
+  const response =
+    await serverApiFetch<MyRidesResponse>(
+      "/api/rides/user/me"
+    );
+
+  return response.data;
+}
