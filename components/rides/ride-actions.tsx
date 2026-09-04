@@ -143,28 +143,71 @@ export default function RideActions({
       }
     }
 
-    async function handleRequest() {
-      if (!isAuthenticated || isOwner) return;
-
-      setLoading(true);
-      setError("");
-
-      try {
-        await createRideRequest(rideId, {
-          seatsRequested: seats,
-        });
-      
-        setRequestStatus("pending");
-      } catch (error) {
-        setError(
-          error instanceof Error
-            ? error.message
-            : "Unable to send ride request"
-        );
-      } finally {
-        setLoading(false);
-      }
+  async function handleRequest() {
+    if (!isAuthenticated || isOwner) return;
+    setLoading(true);
+    setError("");
+    try {
+      await createRideRequest(rideId, {
+        seatsRequested: seats,
+      });
+    
+      setRequestStatus("pending");
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Unable to send ride request"
+      );
+    } finally {
+      setLoading(false);
     }
+  }
+
+  async function handleCancelRequest() {
+    if (!requestStatus || requestStatus !== "pending") {
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await getMyRideRequests();
+
+      const currentRequest = response.data.requests?.find(
+        (request) => {
+          const requestRideId =
+            typeof request.ride === "string"
+              ? request.ride
+              : request.ride?._id;
+
+          return (
+            requestRideId === rideId &&
+            request.status === "pending"
+          );
+        }
+      );
+
+      if (!currentRequest) {
+        setRequestStatus(null);
+        setError("No pending request found.");
+        return;
+      }
+
+      await cancelRideRequest(currentRequest._id);
+
+      setRequestStatus("cancelled");
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Unable to cancel request"
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function handleAcceptRequest(requestId: string) {
     setRequestActionLoading(requestId);
@@ -484,6 +527,15 @@ export default function RideActions({
             Your request has been sent to the driver.
             You'll be able to join once they accept it.
           </p>
+
+          <button
+            type="button"
+            onClick={handleCancelRequest}
+            disabled={loading}
+            className="mt-4 w-full rounded-xl border border-red-200 px-4 py-3 text-sm font-bold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {loading ? "Cancelling..." : "Cancel request"}
+          </button>
         </>
       ) : requestStatus === "accepted" ? (
         <>

@@ -1,11 +1,13 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
+import { useEffect, useState } from "react";
 import { Bell, LogOut } from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
+import { getUnreadNotificationCount } from "@/lib/api/notifications";
+import { useAuthStore } from "@/lib/stores/auth.store";
 import { useRouter } from "next/navigation";
 import { logout } from "@/lib/api/auth";
-import { useAuthStore } from "@/lib/stores/auth.store";
 
 export default function Navbar() {
   const router = useRouter();
@@ -30,6 +32,36 @@ export default function Navbar() {
       router.push("/login");
     }
   }
+
+  const isAuthenticated = useAuthStore(
+    (state) => state.isAuthenticated
+  );
+
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setUnreadCount(0);
+      return;
+    }
+
+    async function loadUnreadCount() {
+      try {
+        const response =
+          await getUnreadNotificationCount();
+
+        setUnreadCount(
+          response.data.unreadCount ??
+            response.data.count ??
+            0
+        );
+      } catch {
+        setUnreadCount(0);
+      }
+    }
+
+    loadUnreadCount();
+  }, [isAuthenticated]);
 
   return (
     <header className="border-b border-slate-200 bg-white">
@@ -79,13 +111,23 @@ export default function Navbar() {
 
         {/* Actions */}
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            aria-label="Notifications"
-            className="flex h-10 w-10 items-center justify-center rounded-full text-secondary transition hover:bg-neutral hover:text-primary"
+          <Link
+            href="/notifications"
+            aria-label={
+              unreadCount > 0
+                ? `${unreadCount} unread notifications`
+                : "Notifications"
+            }
+            className="relative"
           >
-            <Bell size={20} strokeWidth={1.8} />
-          </button>
+            <Bell size={20} />
+          
+            {unreadCount > 0 && (
+              <span className="absolute -right-2 -top-2 flex min-w-4 h-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </span>
+            )}
+          </Link>
 
           <Link
             href="/profile"
