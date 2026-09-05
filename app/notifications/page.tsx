@@ -11,9 +11,9 @@ import {
   getNotifications,
   markAllNotificationsRead,
   markNotificationRead,
-  type Notification,
 } from "@/lib/api/notifications";
 import { useAuthStore } from "@/lib/stores/auth.store";
+import { useNotificationStore } from "@/lib/stores/notification.store";
 
 function formatTime(date?: string) {
   if (!date) return "";
@@ -31,9 +31,22 @@ export default function NotificationsPage() {
     (state) => state.isAuthenticated
   );
 
-  const [notifications, setNotifications] = useState<
-    Notification[]
-  >([]);
+  const notifications = useNotificationStore(
+    (state) => state.notifications
+  );
+
+  const setNotifications = useNotificationStore(
+    (state) => state.setNotifications
+  );
+
+  const markAsRead = useNotificationStore(
+    (state) => state.markAsRead
+  );
+
+  const markAllAsRead = useNotificationStore(
+    (state) => state.markAllAsRead
+  );
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -64,7 +77,7 @@ export default function NotificationsPage() {
     }
 
     loadNotifications();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, setNotifications]);
 
   async function handleRead(
     notificationId: string
@@ -72,16 +85,7 @@ export default function NotificationsPage() {
     try {
       await markNotificationRead(notificationId);
 
-      setNotifications((current) =>
-        current.map((notification) =>
-          notification._id === notificationId
-            ? {
-                ...notification,
-                read: true,
-              }
-            : notification
-        )
-      );
+      markAsRead(notificationId);
     } catch (error) {
       setError(
         error instanceof Error
@@ -95,12 +99,7 @@ export default function NotificationsPage() {
     try {
       await markAllNotificationsRead();
 
-      setNotifications((current) =>
-        current.map((notification) => ({
-          ...notification,
-          read: true,
-        }))
-      );
+      markAllAsRead();
     } catch (error) {
       setError(
         error instanceof Error

@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Bell, LogOut } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { getUnreadNotificationCount } from "@/lib/api/notifications";
 import { useAuthStore } from "@/lib/stores/auth.store";
+import { useNotificationStore } from "@/lib/stores/notification.store";
 import { useRouter } from "next/navigation";
 import { logout } from "@/lib/api/auth";
 
@@ -16,8 +17,20 @@ export default function Navbar() {
     (state) => state.accessToken
   );
 
+  const isAuthenticated = useAuthStore(
+    (state) => state.isAuthenticated
+  );
+
   const clearAuth = useAuthStore(
     (state) => state.clearAuth
+  );
+
+  const unreadCount = useNotificationStore(
+    (state) => state.unreadCount
+  );
+
+  const setUnreadCount = useNotificationStore(
+    (state) => state.setUnreadCount
   );
 
   async function handleLogout() {
@@ -32,12 +45,6 @@ export default function Navbar() {
       router.push("/login");
     }
   }
-
-  const isAuthenticated = useAuthStore(
-    (state) => state.isAuthenticated
-  );
-
-  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -61,7 +68,7 @@ export default function Navbar() {
     }
 
     loadUnreadCount();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, setUnreadCount]);
 
   return (
     <header className="border-b border-slate-200 bg-white">
@@ -121,7 +128,7 @@ export default function Navbar() {
             className="relative"
           >
             <Bell size={20} />
-          
+
             {unreadCount > 0 && (
               <span className="absolute -right-2 -top-2 flex min-w-4 h-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
                 {unreadCount > 99 ? "99+" : unreadCount}
