@@ -3,7 +3,15 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Minus, Plus, Pencil, Send, Check, X } from "lucide-react";
+import {
+  Minus,
+  Plus,
+  Pencil,
+  Send,
+  Check,
+  X,
+  MessageCircle,
+} from "lucide-react";
 import { apiFetch } from "@/lib/api/client";
 import { 
   createRideRequest, 
@@ -14,6 +22,7 @@ import {
   cancelRideRequest, 
   type RideRequest } from "@/lib/api/ride-requests";
 import { useAuthStore } from "@/lib/stores/auth.store";
+import { getRideChat } from "@/lib/api/chat";
 
 interface RideActionsProps {
   rideId: string;
@@ -57,6 +66,11 @@ export default function RideActions({
   const [requestStatus, setRequestStatus] = useState<
     RideRequest["status"] | null
   >(null);
+  
+  const [chatPartner, setChatPartner] = useState<{
+    userId: string;
+    name: string;
+  } | null>(null);
   const [error, setError] = useState("");
   const [requests, setRequests] = useState<RideRequest[]>([]);
   const [requestsLoading, setRequestsLoading] = useState(false);
@@ -102,6 +116,18 @@ export default function RideActions({
 
         if (currentRequest) {
           setRequestStatus(currentRequest.status);
+                
+          const driver =
+            typeof currentRequest.driver === "object"
+              ? currentRequest.driver
+              : null;
+                
+          if (driver?._id) {
+            setChatPartner({
+              userId: driver._id,
+              name: driver.name ?? "Driver",
+            });
+          }
         }
       } catch (error) {
         console.error(
@@ -225,7 +251,7 @@ export default function RideActions({
         )
       );
 
-      router.refresh
+      router.refresh();
     } catch (error) {
       setError(
         error instanceof Error
@@ -439,6 +465,30 @@ export default function RideActions({
                           </button>
                         </div>
                       )}
+                      {request.status === "accepted" && passenger?._id && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              const response = await getRideChat(
+                                rideId,
+                                passenger._id!
+                              );
+                            
+                              router.push(
+                                `/chats/${response.data.chat._id}`
+                              );
+                            } catch (error) {
+                              console.error("Unable to open chat:", error);
+                              setError("Unable to open chat.");
+                            }
+                          }}
+                          className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-primary px-3 py-2 text-xs font-bold text-primary transition hover:bg-primary/5"
+                        >
+                          <MessageCircle size={14} />
+                          Chat
+                        </button>
+                      )}
                     </div>
                   );
                 })}
@@ -542,11 +592,36 @@ export default function RideActions({
           <h2 className="text-lg font-bold text-primary">
             Request accepted
           </h2>
-      
+
           <p className="mt-2 text-sm text-slate-500">
             The driver accepted your request. Your seat is
             booked.
           </p>
+
+          {chatPartner && (
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  const response = await getRideChat(
+                    rideId,
+                    chatPartner.userId
+                  );
+                
+                  router.push(
+                    `/chats/${response.data.chat._id}`
+                  );
+                } catch (error) {
+                  console.error("Unable to open chat:", error);
+                  setError("Unable to open chat.");
+                }
+              }}
+              className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-white transition hover:bg-secondary"
+            >
+              <MessageCircle size={16} />
+              Chat with {chatPartner.name}
+            </button>
+          )}
         </>
       ) : requestStatus === "rejected" ? (
         <>

@@ -18,7 +18,11 @@ export async function apiFetch<T>(
     ...fetchOptions,
     credentials: "include",
     headers: {
-      "Content-Type": "application/json",
+      ...(fetchOptions.body instanceof FormData
+        ? {}
+        : {
+            "Content-Type": "application/json",
+          }),
       ...(token
         ? {
             Authorization: `Bearer ${token}`,

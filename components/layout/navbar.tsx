@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
-import { Bell, LogOut } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Bell, LogOut, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { getUnreadNotificationCount } from "@/lib/api/notifications";
@@ -9,6 +9,7 @@ import { useAuthStore } from "@/lib/stores/auth.store";
 import { useNotificationStore } from "@/lib/stores/notification.store";
 import { useRouter } from "next/navigation";
 import { logout } from "@/lib/api/auth";
+import { getChats } from "@/lib/api/chat";
 
 export default function Navbar() {
   const router = useRouter();
@@ -19,6 +20,10 @@ export default function Navbar() {
 
   const isAuthenticated = useAuthStore(
     (state) => state.isAuthenticated
+  );
+
+  const user = useAuthStore(
+    (state) => state.user
   );
 
   const clearAuth = useAuthStore(
@@ -32,6 +37,8 @@ export default function Navbar() {
   const setUnreadCount = useNotificationStore(
     (state) => state.setUnreadCount
   );
+
+  const [chatUnreadCount, setChatUnreadCount] = useState(0);
 
   async function handleLogout() {
     try {
@@ -48,27 +55,63 @@ export default function Navbar() {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      setUnreadCount(0);
+      setChatUnreadCount(0);
       return;
     }
 
-    async function loadUnreadCount() {
+    async function loadChatUnreadCount() {
       try {
-        const response =
-          await getUnreadNotificationCount();
+        const response = await getChats();
 
-        setUnreadCount(
-          response.data.unreadCount ??
-            response.data.count ??
-            0
+        const count = (response.data.chats ?? []).reduce(
+          (total, chat) =>
+            total + (chat.unreadCount ?? 0),
+          0
         );
-      } catch {
-        setUnreadCount(0);
+
+        setChatUnreadCount(count);
+      } catch (error) {
+        console.error(
+          "Unable to load chat unread count:",
+          error
+        );
       }
     }
 
-    loadUnreadCount();
-  }, [isAuthenticated, setUnreadCount]);
+    loadChatUnreadCount();
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setChatUnreadCount(0);
+      return;
+    }
+
+    async function loadChatUnreadCount() {
+      try {
+        const response = await fetch("/api/chats");
+
+        if (!response.ok) return;
+
+        const result = await response.json();
+
+        const count = (result.data?.chats ?? []).reduce(
+          (total: number, chat: { unreadCount?: number }) =>
+            total + (chat.unreadCount ?? 0),
+          0
+        );
+
+        setChatUnreadCount(count);
+      } catch (error) {
+        console.error(
+          "Unable to load chat unread count:",
+          error
+        );
+      }
+    }
+
+    loadChatUnreadCount();
+  }, [isAuthenticated]);
 
   return (
     <header className="border-b border-slate-200 bg-white">
@@ -109,10 +152,25 @@ export default function Navbar() {
           </Link>
 
           <Link
-            href="/chat"
-            className="font-sans text-sm font-semibold text-slate-600 transition hover:text-primary"
+            href="/chats"
+            aria-label={
+              chatUnreadCount > 0
+                ? `${chatUnreadCount} unread chats`
+                : "Chats"
+            }
+            className="relative flex items-center gap-2 font-sans text-sm font-semibold text-slate-600 transition hover:text-primary"
           >
-            Chat
+            <MessageCircle size={18} />
+          
+            <span>Chats</span>
+          
+            {chatUnreadCount > 0 && (
+              <span className="absolute -right-3 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-white">
+                {chatUnreadCount > 99
+                  ? "99+"
+                  : chatUnreadCount}
+              </span>
+            )}
           </Link>
         </div>
 
@@ -139,9 +197,17 @@ export default function Navbar() {
           <Link
             href="/profile"
             aria-label="Profile"
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary font-sans text-sm font-bold text-white transition hover:bg-primary"
+            className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-secondary font-sans text-sm font-bold text-white transition hover:bg-primary"
           >
-            S
+            {user?.profilePic ? (
+              <img
+                src={user.profilePic}
+                alt=""
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              user?.name?.charAt(0).toUpperCase() ?? "S"
+            )}
           </Link>
 
           <Link
