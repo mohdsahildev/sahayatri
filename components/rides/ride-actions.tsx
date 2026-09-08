@@ -11,6 +11,10 @@ import {
   Check,
   X,
   MessageCircle,
+  KeyRound,
+  Play,
+  Square,
+  CheckCircle,
 } from "lucide-react";
 import { apiFetch } from "@/lib/api/client";
 import { 
@@ -23,6 +27,7 @@ import {
   type RideRequest } from "@/lib/api/ride-requests";
 import { useAuthStore } from "@/lib/stores/auth.store";
 import { getRideChat } from "@/lib/api/chat";
+import RideReview from "./ride-review";
 
 interface RideActionsProps {
   rideId: string;
@@ -76,8 +81,15 @@ export default function RideActions({
   const [requestsLoading, setRequestsLoading] = useState(false);
   const [requestActionLoading, setRequestActionLoading] = useState<string | null>(null);
 
+  const [otpValues, setOtpValues] = useState<Record<string, string>>({});
+  const [verifyingPassenger, setVerifyingPassenger] = useState<string | null>(
+    null
+  );
+  const [rideActionLoading, setRideActionLoading] = useState(false);
+  const [startPin, setStartPin] = useState<string | null>(null);
+
   useEffect(() => {
-    if (!isOwner || status !== "scheduled") return;
+    if (!isOwner) return;
     
     async function loadRequests() {
       setRequestsLoading(true);
@@ -115,6 +127,7 @@ export default function RideActions({
         );
 
         if (currentRequest) {
+          setStartPin(currentRequest.startPin ?? null);
           setRequestStatus(currentRequest.status);
                 
           const driver =
@@ -235,6 +248,62 @@ export default function RideActions({
     }
   }
 
+  async function handleVerifyPassenger(
+    requestId: string,
+    passengerId: string
+  ) {
+    const otp = otpValues[requestId]?.trim();
+
+    if (!otp || !/^\d{4}$/.test(otp)) {
+      setError("Enter the passenger's 4-digit OTP.");
+      return;
+    }
+
+    setVerifyingPassenger(requestId);
+    setError("");
+
+    try {
+      await apiFetch(
+        `/rides/${rideId}/verify-passenger`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            requestId,
+            passengerId,
+            otp,
+          }),
+        }
+      );
+
+      setRequests((current) =>
+        current.map((request) =>
+          request._id === requestId
+            ? {
+                ...request,
+                verifiedBoarding: true,
+                pinVerified: true,
+              }
+            : request
+        )
+      );
+
+      setOtpValues((current) => ({
+        ...current,
+        [requestId]: "",
+      }));
+
+      router.refresh();
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Unable to verify passenger."
+      );
+    } finally {
+      setVerifyingPassenger(null);
+    }
+  }
+
   async function handleAcceptRequest(requestId: string) {
     setRequestActionLoading(requestId);
     setError("");
@@ -345,6 +414,92 @@ export default function RideActions({
     }
   }
 
+  async function handleStartRide(startWithoutPassengers = false) {
+    const confirmed = window.confirm(
+      startWithoutPassengers
+        ? "Start this ride without the accepted passengers? They will be marked as no-shows."
+        : "Are you sure you want to start this ride?"
+    );
+
+    if (!confirmed) return;
+
+    setRideActionLoading(true);
+    setError("");
+
+    try {
+      await apiFetch(`/rides/${rideId}/start`, {
+        method: "PUT",
+        body: JSON.stringify({
+          startWithoutPassengers,
+        }),
+      });
+
+      router.refresh();
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Unable to start ride."
+      );
+    } finally {
+      setRideActionLoading(false);
+    }
+  }
+
+  async function handleEndRide() {
+    const confirmed = window.confirm(
+      "Are you sure you want to end this ride?"
+    );
+
+    if (!confirmed) return;
+
+    setRideActionLoading(true);
+    setError("");
+
+    try {
+      await apiFetch(`/rides/${rideId}/end`, {
+        method: "PUT",
+      });
+
+      router.refresh();
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Unable to end ride."
+      );
+    } finally {
+      setRideActionLoading(false);
+    }
+  }
+
+  async function handleCompleteRide() {
+    const confirmed = window.confirm(
+      "Mark this ride as completed? This will allow participants to leave reviews."
+    );
+
+    if (!confirmed) return;
+
+    setRideActionLoading(true);
+    setError("");
+
+    try {
+      await apiFetch(`/rides/${rideId}/complete`, {
+        method: "PUT",
+      });
+
+      router.refresh();
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Unable to complete ride."
+      );
+    } finally {
+      setRideActionLoading(false);
+    }
+  }
+
   const canJoin =
     isAuthenticated &&
     !isOwner &&
@@ -369,9 +524,83 @@ export default function RideActions({
               You're the driver
             </p>
 
-            <p className="mt-1 text-xs leading-5 text-slate-500">
-              This ride belongs to you.
+            <p className="mt-2 text-sm text-slate-500">
+              Manage your ride and update its progress here.
             </p>
+                  
+            <div className="mt-5 space-y-3">
+              {status === "scheduled" && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => handleStartRide(false)}
+                    disabled={rideActionLoading}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-white transition hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Play size={16} />
+                    {rideActionLoading ? "Starting..." : "Start Ride"}
+                  </button>
+              
+                  {requests.some(
+                    (request) =>
+                      request.status === "accepted" &&
+                      !request.verifiedBoarding &&
+                      !request.pinVerified
+                  ) && (
+                    <button
+                      type="button"
+                      onClick={() => handleStartRide(true)}
+                      disabled={rideActionLoading}
+                      className="w-full rounded-xl border border-amber-200 px-4 py-3 text-sm font-bold text-amber-700 transition hover:bg-amber-50 disabled:opacity-50"
+                    >
+                      Start without passengers
+                    </button>
+                  )}
+            
+                  <p className="text-center text-xs leading-5 text-slate-500">
+                    Accepted passengers should be verified before starting.
+                  </p>
+                </>
+              )}
+            
+              {status === "started" && (
+                <button
+                  type="button"
+                  onClick={handleEndRide}
+                  disabled={rideActionLoading}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-secondary px-4 py-3 text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50"
+                >
+                  <Square size={15} />
+                  {rideActionLoading ? "Ending..." : "End Ride"}
+                </button>
+              )}
+            
+              {status === "ended" && (
+                <button
+                  type="button"
+                  onClick={handleCompleteRide}
+                  disabled={rideActionLoading}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-white transition hover:bg-secondary disabled:opacity-50"
+                >
+                  <CheckCircle size={17} />
+                  {rideActionLoading
+                    ? "Completing..."
+                    : "Complete Ride"}
+                </button>
+              )}
+            
+              {status === "completed" && (
+                <div className="rounded-xl bg-green-50 p-4 text-center">
+                  <p className="text-sm font-bold text-green-700">
+                    Ride completed
+                  </p>
+              
+                  <p className="mt-1 text-xs text-green-600">
+                    Participants can now leave reviews.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="mt-5">
@@ -418,9 +647,18 @@ export default function RideActions({
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="text-sm font-semibold text-secondary">
-                            {passenger?.name ?? "Passenger"}
-                          </p>
+                          {passenger?._id ? (
+                            <Link
+                              href={`/profile/${passenger._id}`}
+                              className="text-sm font-semibold text-secondary transition hover:text-primary"
+                            >
+                              {passenger.name ?? "Passenger"}
+                            </Link>
+                          ) : (
+                            <p className="text-sm font-semibold text-secondary">
+                              Passenger
+                            </p>
+                          )}
                   
                           <p className="mt-1 text-xs text-slate-500">
                             {request.seatsRequested}{" "}
@@ -466,29 +704,98 @@ export default function RideActions({
                         </div>
                       )}
                       {request.status === "accepted" && passenger?._id && (
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            try {
-                              const response = await getRideChat(
-                                rideId,
-                                passenger._id!
-                              );
+                        <>
+                          <div className="mt-3 rounded-xl bg-neutral p-3">
+                            {request.verifiedBoarding || request.pinVerified ? (
+                              <div className="flex items-center gap-2 text-xs font-semibold text-green-700">
+                                <CheckCircle size={15} />
+                                Passenger verified
+                              </div>
+                            ) : (
+                              <>
+                                <div className="flex items-center gap-2">
+                                  <KeyRound size={15} className="text-primary" />
                             
-                              router.push(
-                                `/chats/${response.data.chat._id}`
-                              );
-                            } catch (error) {
-                              console.error("Unable to open chat:", error);
-                              setError("Unable to open chat.");
-                            }
-                          }}
-                          className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-primary px-3 py-2 text-xs font-bold text-primary transition hover:bg-primary/5"
-                        >
-                          <MessageCircle size={14} />
-                          Chat
-                        </button>
-                      )}
+                                  <p className="text-xs font-semibold text-secondary">
+                                    Verify passenger
+                                  </p>
+                                </div>
+                            
+                                <div className="mt-2 flex gap-2">
+                                  <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    maxLength={4}
+                                    placeholder="4-digit OTP"
+                                    value={otpValues[request._id] ?? ""}
+                                    onChange={(event) =>
+                                      setOtpValues((current) => ({
+                                        ...current,
+                                        [request._id]: event.target.value
+                                          .replace(/\D/g, "")
+                                          .slice(0, 4),
+                                      }))
+                                    }
+                                    className="min-w-0 flex-1 rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none focus:border-primary"
+                                  />
+
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleVerifyPassenger(
+                                        request._id,
+                                        passenger._id!
+                                      )
+                                    }
+                                    disabled={
+                                      verifyingPassenger === request._id
+                                    }
+                                    className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
+                                  >
+                                    {verifyingPassenger === request._id
+                                      ? "..."
+                                      : "Verify"}
+                                  </button>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                const response = await getRideChat(
+                                  rideId,
+                                  passenger._id!
+                                );
+                              
+                                router.push(
+                                  `/chats/${response.data.chat._id}`
+                                );
+                              } catch (error) {
+                                console.error("Unable to open chat:", error);
+                                setError("Unable to open chat.");
+                              }
+                            }}
+                            className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-primary px-3 py-2 text-xs font-bold text-primary transition hover:bg-primary/5"
+                          >
+                            <MessageCircle size={14} />
+                            Chat
+                          </button>
+                                                  
+                        {request.status === "accepted" &&
+                          status === "completed" &&
+                          passenger?._id && (
+                            <RideReview
+                              rideId={rideId}
+                              target={{
+                                id: passenger._id,
+                                name: passenger.name ?? "Passenger",
+                              }}
+                            />
+                          )}
+                        </>
+                       )}
                     </div>
                   );
                 })}
@@ -597,6 +904,23 @@ export default function RideActions({
             The driver accepted your request. Your seat is
             booked.
           </p>
+
+          {startPin && (
+            <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-4 text-center">
+              <div className="flex items-center justify-center gap-2 text-xs font-semibold text-primary">
+                <KeyRound size={15} />
+                Boarding PIN
+              </div>
+
+              <p className="mt-2 text-3xl font-black tracking-[0.35em] text-secondary">
+                {startPin}
+              </p>
+
+              <p className="mt-2 text-xs leading-5 text-slate-500">
+                Show this 4-digit PIN to the driver when you meet.
+              </p>
+            </div>
+          )}
 
           {chatPartner && (
             <button

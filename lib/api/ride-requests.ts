@@ -29,6 +29,7 @@ export interface RideRequest {
   pickupConfirmed?: boolean;
   pinVerified?: boolean;
   createdAt?: string;
+  verifiedBoarding?: boolean;
 }
 
 interface RideRequestListResponse {

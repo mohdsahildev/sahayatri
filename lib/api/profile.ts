@@ -1,9 +1,28 @@
-import { apiFetch } from "@/lib/api/client";
+import { apiFetch } from "./client";
+import type { ApiResponse } from "@/lib/api/types";
 
 export interface TrustedContact {
   name?: string;
   phone?: string;
   relationship?: string;
+}
+
+export interface PublicUserProfile {
+  _id: string;
+  name: string;
+  bio?: string;
+  profilePic?: string;
+  selectedAvatar?: string;
+  isVerified?: boolean;
+  rating?: number;
+  rideCount?: number;
+  vehicle?: {
+    type?: string;
+    brand?: string;
+    model?: string;
+    number?: string;
+    seats?: number;
+  };
 }
 
 export interface SafetyPreferences {
@@ -70,4 +89,42 @@ export async function uploadProfileImage(
     method: "POST",
     body: formData,
   });
+}
+
+export interface PublicProfileReview {
+  _id: string;
+  rating: number;
+  comment?: string;
+  reviewer?: {
+    _id: string;
+    name: string;
+    profilePic?: string;
+  };
+  createdAt?: string;
+}
+
+export interface PublicProfileRide {
+  _id: string;
+  from?: string;
+  to?: string;
+  departureTime?: string;
+  status?: string;
+}
+
+export interface PublicProfileData {
+  user: PublicUserProfile;
+  reviews: PublicProfileReview[];
+  recentDriverRides: PublicProfileRide[];
+  recentPassengerRides: PublicProfileRide[];
+  stats: {
+    driverRideCount: number;
+    passengerRideCount: number;
+    reviewCount: number;
+  };
+}
+
+export async function getPublicProfile(userId: string) {
+  return apiFetch<ApiResponse<PublicProfileData>>(
+    `/auth/users/${userId}/public`
+  );
 }

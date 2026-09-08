@@ -1,7 +1,21 @@
 import Link from "next/link";
-import { ArrowLeft, Clock3, Users, Car } from "lucide-react";
+import { ArrowLeft,
+  Clock3, 
+  Users, 
+  Car, 
+  ShieldCheck,
+  PhoneOff,
+  Share2,
+  Cigarette,
+  Music,
+  PawPrint,
+  Luggage,
+  Snowflake,
+  MessageCircle,  
+  } from "lucide-react";
 import { serverApiFetch } from "@/lib/api/server-client";
 import RideActions from "@/components/rides/ride-actions";
+import RideReview from "@/components/rides/ride-review";
 
 interface RideResponse {
   success: boolean;
@@ -53,6 +67,20 @@ interface RideResponse {
       image?: string;
       verified?: boolean;
     };
+
+    preferences?: {
+      womenOnly?: boolean;
+      verifiedOnly?: boolean;
+      hidePhoneNumber?: boolean;
+      requireRideShare?: boolean;
+      smokingAllowed?: boolean;
+      musicAllowed?: boolean;
+      petsAllowed?: boolean;
+      luggageSpace?: boolean;
+      acAvailable?: boolean;
+      conversationLevel?: "quiet" | "normal" | "talkative";
+      genderPreference?: "any" | "male" | "female";
+    };
   };
 }
 
@@ -73,6 +101,23 @@ export default async function RideDetailsPage({
 
   const ride = response.data;
 
+  let currentUserId = "";
+  
+  try {
+    const meResponse = await serverApiFetch<{
+      success: boolean;
+      data: {
+        user: {
+          _id: string;
+        };
+      };
+    }>("/api/auth/me");
+  
+    currentUserId = meResponse.data.user._id;
+  } catch {
+    currentUserId = "";
+  }
+
   const departure = new Date(ride.departureTime);
 
   const seatsLeft = Math.max(
@@ -91,6 +136,19 @@ export default async function RideDetailsPage({
   const driverRides = ride.driverInfo?.rideCount ?? 0;
   const driverVerified =
     ride.driverInfo?.isVerified ?? false;
+
+  const driverId =
+    typeof ride.driver === "string"
+      ? ride.driver
+      : ride.driver._id ?? "";
+
+  const isDriver =
+    Boolean(currentUserId) && currentUserId === driverId;
+
+  const canReviewDriver =
+    ride.status === "completed" &&
+    Boolean(currentUserId) &&
+    !isDriver;
 
   return (
     <>
@@ -231,9 +289,12 @@ export default async function RideDetailsPage({
 
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-semibold text-secondary">
+                    <Link
+                      href={`/profile/${driverId}`}
+                      className="font-semibold text-secondary transition hover:text-primary"
+                    >
                       {driverName}
-                    </p>
+                    </Link>
 
                     {driverVerified && (
                       <span className="text-xs font-semibold text-primary">
@@ -252,13 +313,29 @@ export default async function RideDetailsPage({
             {/* Vehicle */}
             {ride.vehicle && (
               <section className="rounded-2xl border border-slate-200 bg-white p-6">
-                <div className="flex items-center gap-2">
-                  <Car size={18} className="text-primary" />
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <Car size={18} className="text-primary" />
 
-                  <h2 className="text-lg font-bold text-secondary">
-                    Vehicle
-                  </h2>
+                    <h2 className="text-lg font-bold text-secondary">
+                      Vehicle
+                    </h2>
+                  </div>
+
+                  {ride.vehicle.verified && (
+                    <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700">
+                      ✓ Verified vehicle
+                    </span>
+                  )}
                 </div>
+
+                {ride.vehicle.image && (
+                  <img
+                    src={ride.vehicle.image}
+                    alt={`${ride.vehicle.brand ?? ""} ${ride.vehicle.model ?? ""}`}
+                    className="mt-4 h-48 w-full rounded-xl object-cover"
+                  />
+                )}
 
                 <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
                   <div>
@@ -289,6 +366,103 @@ export default async function RideDetailsPage({
               </section>
             )}
 
+            {ride.preferences && (
+              <section className="rounded-2xl border border-border bg-white p-6 shadow-sm">
+                <div className="mb-5 flex items-center gap-2">
+                  <ShieldCheck size={18} className="text-primary" />
+                  <h2 className="text-lg font-bold text-secondary">
+                    Ride Preferences
+                  </h2>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {ride.preferences.womenOnly && (
+                    <PreferenceItem
+                      icon={<Users size={18} />}
+                      label="Women only"
+                    />
+                  )}
+
+                  {ride.preferences.verifiedOnly && (
+                    <PreferenceItem
+                      icon={<ShieldCheck size={18} />}
+                      label="Verified users only"
+                    />
+                  )}
+
+                  {ride.preferences.hidePhoneNumber && (
+                    <PreferenceItem
+                      icon={<PhoneOff size={18} />}
+                      label="Phone number hidden"
+                    />
+                  )}
+
+                  {ride.preferences.requireRideShare && (
+                    <PreferenceItem
+                      icon={<Share2 size={18} />}
+                      label="Ride sharing required"
+                    />
+                  )}
+
+                  {ride.preferences.smokingAllowed && (
+                    <PreferenceItem
+                      icon={<Cigarette size={18} />}
+                      label="Smoking allowed"
+                    />
+                  )}
+
+                  {ride.preferences.musicAllowed && (
+                    <PreferenceItem
+                      icon={<Music size={18} />}
+                      label="Music allowed"
+                    />
+                  )}
+
+                  {ride.preferences.petsAllowed && (
+                    <PreferenceItem
+                      icon={<PawPrint size={18} />}
+                      label="Pets allowed"
+                    />
+                  )}
+
+                  {ride.preferences.luggageSpace && (
+                    <PreferenceItem
+                      icon={<Luggage size={18} />}
+                      label="Luggage space available"
+                    />
+                  )}
+
+                  {ride.preferences.acAvailable && (
+                    <PreferenceItem
+                      icon={<Snowflake size={18} />}
+                      label="AC available"
+                    />
+                  )}
+
+                  {ride.preferences.conversationLevel && (
+                    <PreferenceItem
+                      icon={<MessageCircle size={18} />}
+                      label={`Conversation: ${
+                        ride.preferences.conversationLevel.charAt(0).toUpperCase() +
+                        ride.preferences.conversationLevel.slice(1)
+                      }`}
+                    />
+                  )}
+
+                  {ride.preferences.genderPreference &&
+                    ride.preferences.genderPreference !== "any" && (
+                      <PreferenceItem
+                        icon={<Users size={18} />}
+                        label={`Gender preference: ${
+                          ride.preferences.genderPreference.charAt(0).toUpperCase() +
+                          ride.preferences.genderPreference.slice(1)
+                        }`}
+                      />
+                    )}
+                </div>
+              </section>
+            )}
+
             {/* Description */}
             {ride.description && (
               <section className="rounded-2xl border border-slate-200 bg-white p-6">
@@ -300,6 +474,16 @@ export default async function RideDetailsPage({
                   {ride.description}
                 </p>
               </section>
+            )}
+
+            {canReviewDriver && (
+              <RideReview
+                rideId={ride._id}
+                target={{
+                  id: driverId,
+                  name: driverName,
+                }}
+              />
             )}
           </div>
 
@@ -317,5 +501,20 @@ export default async function RideDetailsPage({
         </div>
       </main>
     </>
+  );
+}
+
+function PreferenceItem({
+  icon,
+  label,
+}: {
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl bg-gray-50 px-4 py-3">
+      <span className="text-primary">{icon}</span>
+      <span className="text-sm font-medium text-secondary">{label}</span>
+    </div>
   );
 }
