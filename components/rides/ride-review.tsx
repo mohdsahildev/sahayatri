@@ -29,6 +29,7 @@ export default function RideReview({
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [alreadyReviewed, setAlreadyReviewed] = useState(false);
   const [error, setError] = useState("");
 
   async function handleSubmit() {
@@ -51,12 +52,49 @@ export default function RideReview({
       router.refresh();
       onSubmitted?.();
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to submit review."
-      );
+      const msg =
+        err instanceof Error ? err.message : "Failed to submit review.";
+      const lower = msg.toLowerCase();
+      if (
+        lower.includes("already reviewed") ||
+        lower.includes("already rated")
+      ) {
+        setAlreadyReviewed(true);
+      } else {
+        setError(msg);
+      }
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (alreadyReviewed) {
+    return (
+      <div className="mt-3 rounded-xl bg-slate-100 p-4 border border-slate-200">
+        <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+          <Star
+            size={16}
+            className="fill-amber-400 text-amber-400"
+          />
+          Already Reviewed
+        </div>
+
+        <p className="mt-1 text-xs text-slate-600">
+          You have already reviewed{" "}
+          {target.id ? (
+            <Link
+              href={`/profile/${target.id}`}
+              className="font-semibold underline hover:text-slate-900"
+            >
+              {target.name}
+            </Link>
+          ) : (
+            target.name
+          )}
+          {" "}for this ride.
+        </p>
+      </div>
+    );
   }
 
   if (submitted) {
