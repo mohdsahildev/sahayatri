@@ -123,7 +123,9 @@ export default function PublicProfilePage() {
                     className="fill-current text-primary"
                   />
                   <span className="font-bold text-secondary">
-                    {profile.user.rating ?? "—"}
+                    {typeof profile.user.rating === "number"
+                      ? profile.user.rating.toFixed(1)
+                      : "—"}
                   </span>
                 </div>
             
@@ -243,9 +245,18 @@ export default function PublicProfilePage() {
                     className="rounded-xl bg-neutral p-4"
                   >
                     <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm font-semibold text-secondary">
-                        {review.reviewer?.name ?? "User"}
-                      </p>
+                      {review.reviewer?._id ? (
+                        <Link
+                          href={`/profile/${review.reviewer._id}`}
+                          className="text-sm font-semibold text-secondary transition hover:text-primary"
+                        >
+                          {review.reviewer.name}
+                        </Link>
+                      ) : (
+                        <p className="text-sm font-semibold text-secondary">
+                          {review.reviewer?.name ?? "User"}
+                        </p>
+                      )}
                 
                       <div className="flex items-center gap-1">
                         <Star
@@ -298,32 +309,44 @@ export default function PublicProfilePage() {
                   })),
                 ]
                   .slice(0, 5)
-                  .map((ride) => (
-                    <Link
-                      key={`${ride.role}-${ride._id}`}
-                      href={`/rides/${ride._id}`}
-                      className="block rounded-xl bg-neutral p-4 transition hover:bg-primary/5"
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="text-sm font-semibold text-secondary">
-                          {ride.from ?? "Starting point"} →{" "}
-                          {ride.to ?? "Destination"}
-                        </p>
-                
-                        <span className="text-[11px] font-semibold text-primary">
-                          {ride.role}
-                        </span>
-                      </div>
-                
-                      {ride.departureTime && (
-                        <p className="mt-1 text-xs text-slate-500">
-                          {new Date(
-                            ride.departureTime
-                          ).toLocaleString()}
-                        </p>
-                      )}
-                    </Link>
-                  ))}
+                  .map((ride) => {
+                    const sourceName =
+                      (typeof ride.source === "object"
+                        ? ride.source?.name
+                        : ride.source) ||
+                      ride.from ||
+                      "Starting point";
+                    const destinationName =
+                      (typeof ride.destination === "object"
+                        ? ride.destination?.name
+                        : ride.destination) ||
+                      ride.to ||
+                      "Destination";
+
+                    return (
+                      <Link
+                        key={`${ride.role}-${ride._id}`}
+                        href={`/rides/${ride._id}`}
+                        className="block rounded-xl bg-neutral p-4 transition hover:bg-primary/5"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-sm font-semibold text-secondary">
+                            {sourceName} → {destinationName}
+                          </p>
+
+                          <span className="text-[11px] font-semibold text-primary">
+                            {ride.role}
+                          </span>
+                        </div>
+
+                        {ride.departureTime && (
+                          <p className="mt-1 text-xs text-slate-500">
+                            {new Date(ride.departureTime).toLocaleString()}
+                          </p>
+                        )}
+                      </Link>
+                    );
+                  })}
               </div>
             </section>
           )}

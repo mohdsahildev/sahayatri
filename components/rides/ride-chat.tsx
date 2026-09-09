@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { Send } from "lucide-react";
 import {
   getMessages,
@@ -195,7 +196,17 @@ export default function RideChat({
     <div className="flex h-[520px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white">
       <div className="border-b border-slate-200 p-4">
         <h2 className="font-bold text-secondary">
-          Chat with {receiverName}
+          Chat with{" "}
+          {receiverId ? (
+            <Link
+              href={`/profile/${receiverId}`}
+              className="transition hover:text-primary"
+            >
+              {receiverName}
+            </Link>
+          ) : (
+            receiverName
+          )}
         </h2>
 
         <p className="mt-1 text-xs text-slate-500">

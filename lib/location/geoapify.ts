@@ -17,18 +17,18 @@ interface GeoapifyResponse {
   features?: GeoapifyFeature[];
 }
 
-const API_KEY = process.env.NEXT_PUBLIC_GEOAPIFY_API_KEY;
-
 export async function searchLocations(
   query: string
 ): Promise<Location[]> {
-  if (!query.trim() || !API_KEY) {
+  const apiKey = process.env.NEXT_PUBLIC_GEOAPIFY_API_KEY;
+
+  if (!query.trim() || !apiKey) {
     return [];
   }
 
   const params = new URLSearchParams({
     text: query,
-    apiKey: API_KEY,
+    apiKey,
     limit: "5",
   });
 
@@ -47,10 +47,10 @@ export async function searchLocations(
     .map((feature) => {
       const properties = feature.properties;
 
-      if (
-        !properties?.lat ||
-        !properties?.lon
-      ) {
+      const lat = properties?.lat;
+      const lng = properties?.lon;
+
+      if (!properties || typeof lat !== "number" || typeof lng !== "number") {
         return null;
       }
 
@@ -59,8 +59,8 @@ export async function searchLocations(
           properties.formatted ??
           properties.name ??
           "",
-        lat: properties.lat,
-        lng: properties.lon,
+        lat,
+        lng,
       };
     })
     .filter(

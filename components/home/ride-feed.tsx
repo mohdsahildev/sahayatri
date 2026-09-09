@@ -28,7 +28,7 @@ export default function RideFeed({
 
     params.set("page", String(page));
 
-    return `/?${params.toString()}`;
+    return `/home?${params.toString()}`;
   }
 
   if (rides.length === 0) {

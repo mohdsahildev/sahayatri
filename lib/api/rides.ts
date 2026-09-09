@@ -93,6 +93,11 @@ export function mapApiRideToRide(ride: ApiRide): Ride {
     id: ride._id,
 
     driver: {
+      id:
+        ride.driverInfo?._id ??
+        (typeof ride.driver === "string"
+          ? ride.driver
+          : ""),
       name: ride.driverInfo?.name ?? "SahaYatri user",
       rating: ride.driverInfo?.rating ?? 0,
       rides: ride.driverInfo?.rideCount ?? 0,

@@ -59,6 +59,10 @@ interface RideResponse {
     description?: string;
     status?: string;
 
+    passengers?: Array<{
+      user: string | { _id?: string };
+    }>;
+
     vehicle?: {
       type?: string;
       brand?: string;
@@ -145,10 +149,19 @@ export default async function RideDetailsPage({
   const isDriver =
     Boolean(currentUserId) && currentUserId === driverId;
 
+  const isPassenger =
+    Boolean(currentUserId) &&
+    Array.isArray(ride.passengers) &&
+    ride.passengers.some((p) => {
+      const uid = typeof p.user === "string" ? p.user : p.user?._id;
+      return uid === currentUserId;
+    });
+
   const canReviewDriver =
     ride.status === "completed" &&
     Boolean(currentUserId) &&
-    !isDriver;
+    !isDriver &&
+    isPassenger;
 
   return (
     <>
@@ -275,7 +288,21 @@ export default async function RideDetailsPage({
               </h2>
 
               <div className="mt-4 flex items-center gap-4">
-                {ride.driverInfo?.profilePic ? (
+                {driverId ? (
+                  <Link href={`/profile/${driverId}`} className="transition hover:opacity-90">
+                    {ride.driverInfo?.profilePic ? (
+                      <img
+                        src={ride.driverInfo.profilePic}
+                        alt={driverName}
+                        className="h-14 w-14 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary text-lg font-bold text-white">
+                        {driverName.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </Link>
+                ) : ride.driverInfo?.profilePic ? (
                   <img
                     src={ride.driverInfo.profilePic}
                     alt={driverName}

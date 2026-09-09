@@ -3,14 +3,15 @@
 import { useState } from "react";
 import { CalendarDays, MapPin, Search, ArrowRight } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
+import LocationSearch from "@/components/location/location-search";
 
 export default function RideSearch() {
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
-  const [date, setDate] = useState("");
-
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  const [from, setFrom] = useState(searchParams.get("from") ?? "");
+  const [to, setTo] = useState(searchParams.get("to") ?? "");
+  const [date, setDate] = useState(searchParams.get("date") ?? "");
 
   function handleSearch(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -39,7 +40,7 @@ export default function RideSearch() {
 
     const query = params.toString();
 
-    router.push(query ? `/?${query}` : "/");
+    router.push(query ? `/home?${query}` : "/home");
   }
 
   return (
@@ -50,58 +51,34 @@ export default function RideSearch() {
       >
         <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_190px_auto]">
           {/* From */}
-          <div className="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3">
-            <MapPin
-              size={19}
-              strokeWidth={1.8}
-              className="shrink-0 text-primary"
-            />
-
-            <div className="min-w-0 flex-1">
-              <label
-                htmlFor="from"
-                className="block font-sans text-xs font-semibold text-slate-500"
-              >
-                From
-              </label>
-
-              <input
-                id="from"
-                type="text"
-                value={from}
-                onChange={(event) => setFrom(event.target.value)}
-                placeholder="Where from?"
-                className="mt-0.5 w-full bg-transparent text-sm text-secondary outline-none placeholder:text-slate-400"
+          <LocationSearch
+            value={from}
+            onChangeText={setFrom}
+            onSelect={(location) => setFrom(location.name)}
+            placeholder="Where from?"
+            icon={
+              <MapPin
+                size={19}
+                strokeWidth={1.8}
+                className="shrink-0 text-primary"
               />
-            </div>
-          </div>
+            }
+          />
 
           {/* To */}
-          <div className="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3">
-            <ArrowRight
-              size={19}
-              strokeWidth={1.8}
-              className="shrink-0 text-primary"
-            />
-
-            <div className="min-w-0 flex-1">
-              <label
-                htmlFor="to"
-                className="block font-sans text-xs font-semibold text-slate-500"
-              >
-                To
-              </label>
-
-              <input
-                id="to"
-                type="text"
-                value={to}
-                onChange={(event) => setTo(event.target.value)}
-                placeholder="Where to?"
-                className="mt-0.5 w-full bg-transparent text-sm text-secondary outline-none placeholder:text-slate-400"
+          <LocationSearch
+            value={to}
+            onChangeText={setTo}
+            onSelect={(location) => setTo(location.name)}
+            placeholder="Where to?"
+            icon={
+              <ArrowRight
+                size={19}
+                strokeWidth={1.8}
+                className="shrink-0 text-primary"
               />
-            </div>
-          </div>
+            }
+          />
 
           {/* Date */}
           <div className="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3">

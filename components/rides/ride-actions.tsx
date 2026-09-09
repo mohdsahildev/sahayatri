@@ -792,6 +792,7 @@ export default function RideActions({
                                 id: passenger._id,
                                 name: passenger.name ?? "Passenger",
                               }}
+                              onSubmitted={() => router.refresh()}
                             />
                           )}
                         </>

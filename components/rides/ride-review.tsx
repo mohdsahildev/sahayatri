@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Star, Send } from "lucide-react";
 import { createRideReview } from "@/lib/api/reviews";
 
@@ -20,6 +22,8 @@ export default function RideReview({
   target,
   onSubmitted,
 }: RideReviewProps) {
+  const router = useRouter();
+
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState("");
@@ -44,6 +48,7 @@ export default function RideReview({
       });
 
       setSubmitted(true);
+      router.refresh();
       onSubmitted?.();
     } catch (err) {
       setError(
@@ -66,7 +71,18 @@ export default function RideReview({
         </div>
 
         <p className="mt-1 text-xs text-green-600">
-          Thanks for sharing your experience with {target.name}.
+          Thanks for sharing your experience with{" "}
+          {target.id ? (
+            <Link
+              href={`/profile/${target.id}`}
+              className="font-semibold underline"
+            >
+              {target.name}
+            </Link>
+          ) : (
+            target.name
+          )}
+          .
         </p>
       </div>
     );
@@ -76,7 +92,17 @@ export default function RideReview({
     <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
       <div>
         <h3 className="text-sm font-bold text-secondary">
-          Rate {target.name}
+          Rate{" "}
+          {target.id ? (
+            <Link
+              href={`/profile/${target.id}`}
+              className="transition hover:text-primary"
+            >
+              {target.name}
+            </Link>
+          ) : (
+            target.name
+          )}
         </h3>
 
         <p className="mt-1 text-xs text-slate-500">

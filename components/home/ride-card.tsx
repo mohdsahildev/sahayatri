@@ -9,6 +9,7 @@ import {
 export interface Ride {
   id: string;
   driver: {
+    id: string;
     name: string;
     rating: number;
     rides: number;
@@ -33,15 +34,21 @@ export default function RideCard({ ride }: RideCardProps) {
       {/* Driver + price */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary font-sans text-sm font-bold text-white">
+          <Link
+            href={`/profile/${ride.driver.id}`}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary font-sans text-sm font-bold text-white transition hover:opacity-90"
+          >
             {ride.driver.name.charAt(0).toUpperCase()}
-          </div>
+          </Link>
 
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="font-sans text-sm font-bold text-secondary">
+              <Link
+                href={`/profile/${ride.driver.id}`}
+                className="font-sans text-sm font-bold text-secondary transition hover:text-primary"
+              >
                 {ride.driver.name}
-              </h3>
+              </Link>
 
               {ride.driver.verified && (
                 <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">

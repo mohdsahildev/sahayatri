@@ -12,19 +12,9 @@ export function getSocket() {
       autoConnect: false,
     });
 
-    socket.on("connect", () => {
-      console.log(
-        "[Socket.IO] CONNECTED:",
-        socket?.id
-      );
-    });
+    socket.on("connect", () => {});
 
-    socket.on("disconnect", (reason) => {
-      console.log(
-        "[Socket.IO] DISCONNECTED:",
-        reason
-      );
-    });
+    socket.on("disconnect", (reason) => {});
 
     socket.on("connect_error", (error) => {
       console.error(
@@ -34,11 +24,6 @@ export function getSocket() {
     });
 
     socket.on("notification:new", (payload) => {
-      console.log(
-        "[Socket.IO] notification:new received:",
-        payload
-      );
-
       const incoming = payload?.notification;
 
       if (!incoming?._id) {
@@ -67,11 +52,6 @@ export function getSocket() {
     });
 
     socket.on("unread:count", (payload) => {
-      console.log(
-        "[Socket.IO] unread:count received:",
-        payload
-      );
-
       const count = Number(
         payload?.unreadCount
       );

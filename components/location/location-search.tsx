@@ -8,19 +8,26 @@ import {
 } from "@/lib/location/geoapify";
 
 interface LocationSearchProps {
-  value?: Location | null;
+  value?: Location | string | null;
   onSelect: (location: Location) => void;
+  onChangeText?: (text: string) => void;
   placeholder?: string;
+  className?: string;
+  icon?: React.ReactNode;
 }
 
 export default function LocationSearch({
   value,
   onSelect,
+  onChangeText,
   placeholder = "Search location",
+  className,
+  icon,
 }: LocationSearchProps) {
-  const [query, setQuery] = useState(
-    value?.name ?? ""
-  );
+  const initialName =
+    typeof value === "string" ? value : value?.name ?? "";
+
+  const [query, setQuery] = useState(initialName);
 
   const [suggestions, setSuggestions] =
     useState<Location[]>([]);
@@ -35,13 +42,17 @@ export default function LocationSearch({
     useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setQuery(value?.name ?? "");
+    const currentName =
+      typeof value === "string" ? value : value?.name ?? "";
+    setQuery(currentName);
   }, [value]);
 
   useEffect(() => {
     const trimmedQuery = query.trim();
+    const selectedName =
+      typeof value === "string" ? value : value?.name;
 
-    if (!trimmedQuery || value?.name === query) {
+    if (!trimmedQuery || selectedName === query) {
       setSuggestions([]);
       return;
     }
@@ -110,18 +121,26 @@ export default function LocationSearch({
       ref={containerRef}
       className="relative"
     >
-      <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 focus-within:border-primary">
-        <MapPin
-          size={19}
-          strokeWidth={1.8}
-          className="shrink-0 text-primary"
-        />
+      <div
+        className={`flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 focus-within:border-primary ${
+          className ?? ""
+        }`}
+      >
+        {icon ?? (
+          <MapPin
+            size={19}
+            strokeWidth={1.8}
+            className="shrink-0 text-primary"
+          />
+        )}
 
         <input
           type="text"
           value={query}
           onChange={(event) => {
-            setQuery(event.target.value);
+            const val = event.target.value;
+            setQuery(val);
+            onChangeText?.(val);
             setShowSuggestions(true);
           }}
           onFocus={() => {

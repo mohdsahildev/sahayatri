@@ -28,7 +28,7 @@ export default function RideFilters() {
 
     params.delete("page");
 
-    router.push(`/?${params.toString()}`);
+    router.push(`/home?${params.toString()}`);
   }
 
   function toggleFilters() {
@@ -40,7 +40,7 @@ export default function RideFilters() {
       params.set("filters", "open");
     }
 
-    router.push(`/?${params.toString()}`);
+    router.push(`/home?${params.toString()}`);
   }
 
   return (

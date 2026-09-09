@@ -105,6 +105,8 @@ export interface PublicProfileReview {
 
 export interface PublicProfileRide {
   _id: string;
+  source?: string | { name?: string };
+  destination?: string | { name?: string };
   from?: string;
   to?: string;
   departureTime?: string;
