@@ -2,9 +2,8 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { ArrowRight, Clock3, MapPin, Loader2 } from "lucide-react";
+import { Clock3, Compass, Loader2, ArrowRight } from "lucide-react";
 import { apiFetch } from "@/lib/api/client";
-import { useAuthStore } from "@/lib/stores/auth.store";
 
 interface NearbyRide {
   _id: string;
@@ -16,26 +15,6 @@ interface NearbyRide {
   };
   departureTime: string;
   price: number;
-}
-
-interface UserRide {
-  _id: string;
-  source: {
-    name: string;
-  };
-  destination: {
-    name: string;
-  };
-  departureTime: string;
-}
-
-interface MyRidesResponse {
-  success: boolean;
-  message: string;
-  data: {
-    createdRides: UserRide[];
-    joinedRides: UserRide[];
-  };
 }
 
 interface NearbyRidesResponse {
@@ -58,20 +37,12 @@ type LocationState =
   | "error";
 
 export default function NearbyRides() {
-  const isAuthenticated = useAuthStore(
-    (state) => state.isAuthenticated
-  );
-
   const [rides, setRides] = useState<NearbyRide[]>([]);
-  const [locationState, setLocationState] =
-    useState<LocationState>("loading");
-
-  const [recentRides, setRecentRides] = useState<UserRide[]>([]);
-  const [recentActivityState, setRecentActivityState] =
-    useState<"loading" | "success" | "error">("loading");
+  const [locationState, setLocationState] = useState<LocationState>("loading");
+  const [expanded, setExpanded] = useState(false);
 
   const fetchNearbyRides = useCallback(() => {
-    if (!navigator.geolocation) {
+    if (typeof window === "undefined" || !navigator.geolocation) {
       setLocationState("unavailable");
       return;
     }
@@ -91,28 +62,19 @@ export default function NearbyRides() {
             limit: "5",
           });
 
-          const response =
-            await apiFetch<NearbyRidesResponse>(
-              `/rides/nearby?${params.toString()}`
-            );
+          const response = await apiFetch<NearbyRidesResponse>(
+            `/rides/nearby?${params.toString()}`
+          );
 
           setRides(response.data.rides.slice(0, 3));
           setLocationState("success");
         } catch (error) {
-          console.error(
-            "Failed to fetch nearby rides:",
-            error
-          );
-
+          console.error("Failed to fetch nearby rides:", error);
           setLocationState("error");
         }
       },
       (error) => {
-        console.error(
-          "Failed to get location:",
-          error
-        );
-
+        console.error("Failed to get location:", error);
         if (error.code === error.PERMISSION_DENIED) {
           setLocationState("denied");
         } else {
@@ -127,56 +89,12 @@ export default function NearbyRides() {
     );
   }, []);
 
-  const fetchRecentActivity = useCallback(async () => {
-    try {
-      const response =
-        await apiFetch<MyRidesResponse>(
-          "/rides/user/me"
-        );
-      
-      const created = response.data.createdRides ?? [];
-      const joined = response.data.joinedRides ?? [];
-
-      const combined = [...created, ...joined]
-        .sort(
-          (a, b) =>
-            new Date(b.departureTime).getTime() -
-            new Date(a.departureTime).getTime()
-        )
-        .slice(0, 2);
-      
-      setRecentRides(combined);
-      setRecentActivityState("success");
-    } catch (error) {
-      console.error(
-        "Failed to fetch recent activity:",
-        error
-      );
-    
-      setRecentActivityState("error");
-    }
-  }, []);
-
   useEffect(() => {
-  fetchNearbyRides();
+    fetchNearbyRides();
+  }, [fetchNearbyRides]);
 
-  if (isAuthenticated) {
-      fetchRecentActivity();
-    } else {
-      setRecentActivityState("success");
-      setRecentRides([]);
-    }
-  }, [
-    fetchNearbyRides,
-    fetchRecentActivity,
-    isAuthenticated,
-  ]);
-
-  function formatDepartureTime(
-    departureTime: string
-  ) {
+  function formatDepartureTime(departureTime: string) {
     const date = new Date(departureTime);
-
     return date.toLocaleString("en-IN", {
       day: "numeric",
       month: "short",
@@ -186,239 +104,98 @@ export default function NearbyRides() {
   }
 
   return (
-    <aside className="w-full min-w-0 space-y-6">
-      {/* Nearby rides */}
-      <section className="rounded-2xl border border-slate-200 bg-white p-5">
-        <div>
-          <div className="flex items-center gap-2">
-            <MapPin
-              size={18}
-              className="text-primary"
-            />
-
-            <h2 className="font-sans text-lg font-bold text-secondary">
-              Nearby rides
-            </h2>
-          </div>
-
-          <p className="mt-1 text-xs text-slate-500">
-            Journeys starting around you.
-          </p>
+    <section className="mt-4">
+      {/* Banner Strip matching Stitch design */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-[#F5E6D3] bg-[#FFF8F0] px-4 py-3 text-xs font-semibold text-[#8C4A27] shadow-xs">
+        <div className="flex items-center gap-2.5">
+          <Compass size={16} className="shrink-0 text-[#C8522E]" />
+          <span>
+            <strong className="font-bold text-[#C8522E]">Nearby rides</strong> ·{" "}
+            {locationState === "loading"
+              ? "Scanning location for nearby departures..."
+              : locationState === "success" && rides.length > 0
+              ? `${rides.length} rides are departing near your selected location.`
+              : "Discover rides starting near your current coordinates."}
+          </span>
         </div>
 
-        {/* Loading */}
-        {locationState === "loading" && (
-          <div className="mt-5 flex items-center justify-center gap-2 py-6 text-sm text-slate-500">
-            <Loader2
-              size={16}
-              className="animate-spin text-primary"
-            />
-            Finding rides near you...
-          </div>
-        )}
+        <button
+          type="button"
+          onClick={() => setExpanded((prev) => !prev)}
+          className="inline-flex items-center gap-1 font-bold text-[#C8522E] hover:underline self-start sm:self-auto shrink-0"
+        >
+          <span>{expanded ? "Hide closest" : "View closest"}</span>
+          <ArrowRight size={14} />
+        </button>
+      </div>
 
-        {/* Location denied */}
-        {locationState === "denied" && (
-          <div className="mt-5 rounded-xl bg-neutral p-4 text-center">
-            <p className="text-sm font-semibold text-secondary">
-              Location access is needed
-            </p>
-
-            <p className="mt-1 text-xs leading-5 text-slate-500">
-              Allow location access to discover rides
-              near you.
-            </p>
-
-            <button
-              type="button"
-              onClick={fetchNearbyRides}
-              className="mt-3 text-xs font-bold text-primary hover:text-secondary"
-            >
-              Try again
-            </button>
-          </div>
-        )}
-
-        {/* Location unavailable */}
-        {locationState === "unavailable" && (
-          <div className="mt-5 rounded-xl bg-neutral p-4 text-center">
-            <p className="text-sm font-semibold text-secondary">
-              Location unavailable
-            </p>
-
-            <p className="mt-1 text-xs leading-5 text-slate-500">
-              We couldn't access your location.
-            </p>
-
-            <button
-              type="button"
-              onClick={fetchNearbyRides}
-              className="mt-3 text-xs font-bold text-primary hover:text-secondary"
-            >
-              Try again
-            </button>
-          </div>
-        )}
-
-        {/* API error */}
-        {locationState === "error" && (
-          <div className="mt-5 rounded-xl bg-neutral p-4 text-center">
-            <p className="text-sm font-semibold text-secondary">
-              Couldn't load nearby rides
-            </p>
-
-            <button
-              type="button"
-              onClick={fetchNearbyRides}
-              className="mt-3 text-xs font-bold text-primary hover:text-secondary"
-            >
-              Try again
-            </button>
-          </div>
-        )}
-
-        {/* No rides */}
-        {locationState === "success" &&
-          rides.length === 0 && (
-            <div className="mt-5 rounded-xl bg-neutral p-4 text-center">
-              <p className="text-sm font-semibold text-secondary">
-                No nearby rides
-              </p>
-
-              <p className="mt-1 text-xs text-slate-500">
-                There aren't any rides within 10 km
-                right now.
-              </p>
+      {/* Expanded list or states */}
+      {expanded && (
+        <div className="mt-3 rounded-2xl border border-[#EAE6DF] bg-white p-4 shadow-xs">
+          {locationState === "loading" && (
+            <div className="flex items-center justify-center gap-2 py-4 text-xs font-semibold text-slate-500">
+              <Loader2 size={15} className="animate-spin text-[#C8522E]" />
+              Finding nearby departures...
             </div>
           )}
 
-        {/* Real rides */}
-        {locationState === "success" &&
-          rides.length > 0 && (
-            <div className="mt-4 space-y-3">
+          {locationState === "denied" && (
+            <div className="p-3 text-center text-xs">
+              <p className="font-bold text-[#1E2022]">Location Permission Denied</p>
+              <p className="mt-0.5 text-slate-500">Enable location access to view rides nearby.</p>
+              <button
+                type="button"
+                onClick={fetchNearbyRides}
+                className="mt-2 font-bold text-[#C8522E] underline"
+              >
+                Retry Location Request
+              </button>
+            </div>
+          )}
+
+          {locationState === "unavailable" && (
+            <div className="p-3 text-center text-xs text-slate-500">
+              Location services are unavailable on this device.
+            </div>
+          )}
+
+          {locationState === "error" && (
+            <div className="p-3 text-center text-xs text-slate-500">
+              Unable to load nearby rides right now.
+            </div>
+          )}
+
+          {locationState === "success" && rides.length === 0 && (
+            <div className="p-3 text-center text-xs text-slate-500">
+              No active rides found within 10 km radius right now.
+            </div>
+          )}
+
+          {locationState === "success" && rides.length > 0 && (
+            <div className="grid gap-2 sm:grid-cols-3">
               {rides.map((ride) => (
                 <Link
                   key={ride._id}
                   href={`/rides/${ride._id}`}
-                  className="block rounded-xl border border-slate-100 p-3 transition hover:border-primary/30 hover:bg-neutral"
+                  className="block rounded-xl border border-[#EAE6DF] bg-[#FAF8F5] p-3 transition hover:border-[#C8522E]"
                 >
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="truncate font-sans text-sm font-bold text-secondary">
-                      {ride.source.name} →{" "}
-                      {ride.destination.name}
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="truncate font-sans text-xs font-bold text-[#1E2022]">
+                      {ride.source.name} → {ride.destination.name}
                     </p>
-
-                    <span className="shrink-0 font-sans text-sm font-bold text-primary">
-                      ₹{ride.price}
-                    </span>
+                    <span className="font-bold text-[#C8522E]">₹{ride.price}</span>
                   </div>
 
-                  <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
-                    <Clock3 size={13} />
-
-                    {formatDepartureTime(
-                      ride.departureTime
-                    )}
+                  <div className="mt-2 flex items-center gap-1 text-[11px] text-slate-500">
+                    <Clock3 size={12} />
+                    <span>{formatDepartureTime(ride.departureTime)}</span>
                   </div>
                 </Link>
               ))}
             </div>
           )}
-      </section>
-
-      {/* Recent activity */}
-      <section className="rounded-2xl border border-slate-200 bg-white p-5">
-        <div className="flex items-center justify-between">
-          <h2 className="font-sans text-lg font-bold text-secondary">
-            Recent activity
-          </h2>
-
-
-          <Link
-            href="/my-rides"
-            className="text-xs font-semibold text-primary hover:text-secondary"
-            >
-            View all
-          </Link>
         </div>
-
-        {!isAuthenticated && (
-          <div className="mt-4 rounded-xl bg-neutral p-4 text-center">
-            <p className="text-sm font-semibold text-secondary">
-              Log in to see your recent activity
-            </p>
-            <p className="mt-1 text-xs leading-5 text-slate-500">
-              Your rides and bookings will appear here.
-            </p>
-            <Link
-              href="/login"
-              className="mt-3 inline-flex rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white transition hover:bg-secondary"
-            >
-              Log in
-            </Link>
-          </div>
-        )}
-
-        {isAuthenticated && recentActivityState === "loading" && (
-          <div className="mt-4 py-4 text-center text-xs text-slate-500">
-            Loading recent activity...
-          </div>
-        )}
-
-        {isAuthenticated && recentActivityState === "error" && (
-          <div className="mt-4 rounded-xl bg-neutral p-4 text-center">
-            <p className="text-sm font-semibold text-secondary">
-              Couldn't load recent activity
-            </p>
-          </div>
-        )}
-
-        {isAuthenticated && recentActivityState === "success" &&
-          recentRides.length === 0 && (
-            <div className="mt-4 rounded-xl bg-neutral p-4 text-center">
-              <p className="text-sm font-semibold text-secondary">
-                No recent activity
-              </p>
-          
-              <p className="mt-1 text-xs text-slate-500">
-                Your recent rides will appear here.
-              </p>
-            </div>
-          )}
-
-        {isAuthenticated && recentActivityState === "success" &&
-          recentRides.length > 0 && (
-            <div className="mt-4 divide-y divide-slate-100">
-              {recentRides.map((ride) => (
-                <Link
-                  key={ride._id}
-                  href={`/rides/${ride._id}`}
-                  className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
-                >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary font-sans text-xs font-bold text-white">
-                    R
-                  </div>
-              
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-sans text-sm font-semibold text-secondary">
-                      {ride.source.name}
-                    </p>
-              
-                    <p className="mt-0.5 truncate text-xs text-slate-500">
-                      → {ride.destination.name}
-                    </p>
-                  </div>
-              
-                  <ArrowRight
-                    size={15}
-                    className="shrink-0 text-slate-400"
-                  />
-                </Link>
-              ))}
-            </div>
-          )}
-      </section>
-
-    </aside>
+      )}
+    </section>
   );
 }

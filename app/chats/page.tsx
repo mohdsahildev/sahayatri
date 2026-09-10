@@ -241,18 +241,23 @@ export default function ChatsPage() {
                 const unread = chat.unreadCount ?? 0;
 
                 return (
-                  <Link
+                  <div
                     key={chat._id}
-                    href={`/chats/${chat._id}`}
-                    className="group flex items-center justify-between gap-4 rounded-2xl border border-[#EAE6DF] bg-white p-5 shadow-xs transition hover:border-[#C8522E]/40 hover:shadow-md"
+                    className="relative flex items-center justify-between gap-4 rounded-2xl border border-[#EAE6DF] bg-white p-5 shadow-xs transition hover:border-[#C8522E]/40 hover:shadow-md"
                   >
-                    <div className="flex min-w-0 items-center gap-4">
+                    {/* Main Chat Navigation Overlay */}
+                    <Link
+                      href={`/chats/${chat._id}`}
+                      className="absolute inset-0 z-0 rounded-2xl"
+                      aria-label={`Open conversation with ${participant?.name ?? "SahaYatri User"}`}
+                    />
+
+                    <div className="relative z-10 flex min-w-0 items-center gap-4 pointer-events-none">
                       {/* Avatar with status dot */}
                       {participant?._id ? (
                         <Link
                           href={`/profile/${participant._id}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#FAF8F5] border border-[#EAE6DF] font-sans font-bold text-[#1E2022] transition hover:opacity-90"
+                          className="pointer-events-auto relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#FAF8F5] border border-[#EAE6DF] font-sans font-bold text-[#1E2022] transition hover:opacity-90"
                         >
                           {participant.profilePic ? (
                             <img
@@ -278,8 +283,7 @@ export default function ChatsPage() {
                           {participant?._id ? (
                             <Link
                               href={`/profile/${participant._id}`}
-                              onClick={(e) => e.stopPropagation()}
-                              className="font-sans font-bold text-[#1E2022] truncate text-base hover:text-[#C8522E] transition"
+                              className="pointer-events-auto font-sans font-bold text-[#1E2022] truncate text-base hover:text-[#C8522E] transition"
                             >
                               {participant.name ?? "SahaYatri User"}
                             </Link>
@@ -305,7 +309,7 @@ export default function ChatsPage() {
                     </div>
 
                     {/* Right Meta (Timestamp & Unread Badge) */}
-                    <div className="flex shrink-0 flex-col items-end gap-1.5">
+                    <div className="relative z-10 flex shrink-0 flex-col items-end gap-1.5 pointer-events-none">
                       <span className="text-[11px] font-semibold text-slate-400">
                         {formatRelativeTime(chat.updatedAt)}
                       </span>
@@ -318,7 +322,7 @@ export default function ChatsPage() {
                         <CheckCheck size={16} className="text-slate-300" />
                       )}
                     </div>
-                  </Link>
+                  </div>
                 );
               })}
             </div>

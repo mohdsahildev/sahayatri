@@ -66,7 +66,6 @@ export default function RideChat({
     loadMessages();
   }, [chatId, user?._id]);
 
-  // Join chat room + listen for live messages
   useEffect(() => {
     const socket = getSocket();
 

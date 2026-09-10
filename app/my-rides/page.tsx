@@ -1,7 +1,8 @@
 import Link from "next/link";
+import { Plus, Search } from "lucide-react";
 import Navbar from "@/components/layout/navbar";
 import { getMyRides, type MyRide } from "@/lib/api/rides";
-import MyRideActions from "@/components/rides/my-ride-actions";
+import MyRidesView from "@/components/my-rides/my-rides-view";
 
 export default async function MyRidesPage() {
   let data: {
@@ -13,218 +14,95 @@ export default async function MyRidesPage() {
     data = await getMyRides();
   } catch {
     return (
-      <>
+      <div className="min-h-screen bg-[#FAF8F5] font-sans text-[#1E2022]">
         <Navbar />
 
-        <main className="mx-auto w-full max-w-[1200px] px-5 py-12">
-          <h1 className="font-sans text-3xl font-bold text-secondary">
-            My Rides
-          </h1>
+        <main className="mx-auto w-full max-w-[1240px] px-4 sm:px-6 lg:px-8 py-12">
+          <div className="rounded-3xl border border-[#EAE6DF] bg-white p-12 text-center shadow-xs">
+            <h1 className="font-sans text-2xl font-bold text-[#1E2022]">
+              Authentication Required
+            </h1>
 
-          <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-8 text-center">
-            <p className="font-semibold text-secondary">
-              Please log in to view your rides.
+            <p className="mt-2 text-sm text-slate-500 max-w-sm mx-auto">
+              Please sign in to view and manage the journeys you&apos;ve offered and joined.
             </p>
+
+            <div className="mt-6 flex justify-center">
+              <Link
+                href="/login"
+                className="rounded-xl bg-[#C8522E] px-6 py-2.5 font-sans text-xs font-bold text-white shadow-xs transition hover:bg-[#B34524]"
+              >
+                Sign In to SahaYatri
+              </Link>
+            </div>
           </div>
         </main>
-      </>
+      </div>
     );
   }
 
   const createdRides = data?.createdRides ?? [];
   const joinedRides = data?.joinedRides ?? [];
 
-  const allCreatedUpcoming = createdRides.filter(
-    (ride) => new Date(ride.departureTime) >= new Date()
-  );
-
-  const allCreatedPast = createdRides.filter(
-    (ride) => new Date(ride.departureTime) < new Date()
-  );
-
-  const allJoinedUpcoming = joinedRides.filter(
-    (ride) => new Date(ride.departureTime) >= new Date()
-  );
-
-  const allJoinedPast = joinedRides.filter(
-    (ride) => new Date(ride.departureTime) < new Date()
-  );
-
   return (
-    <>
+    <div className="min-h-screen bg-[#FAF8F5] font-sans text-[#1E2022]">
       <Navbar />
 
-      <main className="mx-auto w-full max-w-[1200px] px-5 py-12">
-        <div>
-          <h1 className="font-sans text-3xl font-bold text-secondary">
-            My Rides
-          </h1>
+      <main className="mx-auto w-full max-w-[1240px] px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        {/* Page Header */}
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <div className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-[#C8522E]">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#C8522E]" />
+              <span>Transit Journal</span>
+            </div>
 
-          <p className="mt-1 text-sm text-slate-500">
-            Manage the rides you&apos;ve created and joined.
-          </p>
-        </div>
+            <h1 className="mt-1 font-sans text-3xl sm:text-4xl font-black tracking-tight text-[#1E2022]">
+              My Rides
+            </h1>
 
-        {/* Created rides */}
-        <section className="mt-8">
-          <h2 className="font-sans text-xl font-bold text-secondary">
-            Rides you&apos;ve created
-          </h2>
-
-          <RideSection
-            title="Upcoming"
-            rides={allCreatedUpcoming}
-            emptyMessage="You have no upcoming rides you've created."
-            isCreated={true}
-          />
-
-          <RideSection
-            title="Past"
-            rides={allCreatedPast}
-            emptyMessage="No past rides."
-            muted
-            isCreated={true}
-          />
-        </section>
-
-        {/* Joined rides */}
-        <section className="mt-10">
-          <h2 className="font-sans text-xl font-bold text-secondary">
-            Rides you&apos;ve joined
-          </h2>
-
-          <RideSection
-            title="Upcoming"
-            rides={allJoinedUpcoming}
-            emptyMessage="You have no upcoming rides you've joined."
-            isCreated={false}
-          />
-
-          <RideSection
-            title="Past"
-            rides={allJoinedPast}
-            emptyMessage="No past rides."
-            muted
-            isCreated={false}
-          />
-        </section>
-      </main>
-    </>
-  );
-}
-
-function RideSection({
-  title,
-  rides,
-  emptyMessage,
-  muted = false,
-  isCreated,
-}: {
-  title: string;
-  rides: MyRide[];
-  emptyMessage: string;
-  muted?: boolean;
-  isCreated: boolean;
-}) {
-  return (
-    <div className="mt-5">
-      <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">
-        {title}
-      </h3>
-
-      {rides.length === 0 ? (
-        <p className="mt-3 text-sm text-slate-400">
-          {emptyMessage}
-        </p>
-      ) : (
-        <div className="mt-3 space-y-4">
-          {rides.map((ride) => (
-            <RideItem
-              key={ride._id}
-              ride={ride}
-              muted={muted}
-              isCreated={isCreated}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function RideItem({
-  ride,
-  muted,
-  isCreated,
-}: {
-  ride: MyRide;
-  muted: boolean;
-  isCreated: boolean;
-}) {
-  const departure = new Date(ride.departureTime);
-
-  return (
-    <Link
-      href={`/rides/${ride._id}`}
-      className="block transition hover:opacity-95"
-    >
-      <article
-        className={`rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-primary/30 hover:shadow-sm ${
-          muted ? "opacity-70" : ""
-        }`}
-      >
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <p className="font-sans text-base font-bold text-secondary">
-              {ride.source.name}
-            </p>
-
-            <p className="mt-1 text-sm text-slate-500">
-              → {ride.destination.name}
+            <p className="mt-1 text-xs sm:text-sm text-slate-500 max-w-xl">
+              Keep track of rides you&apos;ve offered and rides you&apos;ve joined.
             </p>
           </div>
 
-          <span className="shrink-0 font-sans text-lg font-bold text-primary">
-            ₹{ride.price}
-          </span>
+          {/* Action CTAs */}
+          <div className="flex items-center gap-3 shrink-0">
+            <Link
+              href="/home"
+              className="inline-flex items-center gap-2 rounded-xl border border-[#EAE6DF] bg-white px-4 py-2.5 font-sans text-xs font-bold text-[#1E2022] shadow-xs transition hover:border-[#1E2022] hover:bg-[#FAF8F5]"
+            >
+              <Search size={14} className="text-slate-500" />
+              <span>Find a Ride</span>
+            </Link>
+
+            <Link
+              href="/post-ride"
+              className="inline-flex items-center gap-2 rounded-xl bg-[#C8522E] px-4 py-2.5 font-sans text-xs font-bold text-white shadow-xs transition hover:bg-[#B34524] active:scale-98"
+            >
+              <Plus size={14} />
+              <span>Offer a Ride</span>
+            </Link>
+          </div>
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-500">
-          <span>
-            {departure.toLocaleDateString("en-IN", {
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-            })}
-          </span>
-
-          <span>
-            {departure.toLocaleTimeString("en-IN", {
-              hour: "numeric",
-              minute: "2-digit",
-            })}
-          </span>
-
-          <span>
-            {ride.bookedSeats}/{ride.seatsAvailable} seats booked
-          </span>
-        </div>
-
-        <div className="mt-4 flex items-center justify-between">
-          <span className="rounded-full bg-neutral px-3 py-1 text-xs font-semibold capitalize text-secondary">
-            {ride.status}
-          </span>
-
-          <span className="text-xs font-semibold text-primary">
-            View ride →
-          </span>
-        </div>
-        <MyRideActions
-          rideId={ride._id}
-          isCreated={isCreated}
-          status={ride.status}
+        {/* Unified Tabbed Rides View */}
+        <MyRidesView
+          createdRides={createdRides}
+          joinedRides={joinedRides}
         />
-      </article>
-    </Link>
+
+        {/* Footer Links */}
+        <div className="pt-6 border-t border-[#EAE6DF]/60 flex items-center justify-center gap-4 text-xs font-medium text-slate-400">
+          <Link href="/cancellation-policy" className="hover:text-slate-600 transition">
+            Cancellation Rules
+          </Link>
+          <span>·</span>
+          <Link href="/support" className="hover:text-slate-600 transition">
+            Support Desk
+          </Link>
+        </div>
+      </main>
+    </div>
   );
 }

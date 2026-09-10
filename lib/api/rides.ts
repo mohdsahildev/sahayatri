@@ -106,6 +106,10 @@ export function mapApiRideToRide(ride: ApiRide): Ride {
 
     from: ride.source.name,
     to: ride.destination.name,
+    sourceLat: ride.source.lat,
+    sourceLng: ride.source.lng,
+    destLat: ride.destination.lat,
+    destLng: ride.destination.lng,
 
     date: departure.toLocaleDateString("en-IN", {
       day: "numeric",

@@ -12,12 +12,14 @@ interface MyRideActionsProps {
   rideId: string;
   isCreated: boolean;
   status: string;
+  isPast?: boolean;
 }
 
 export default function MyRideActions({
   rideId,
   isCreated,
   status,
+  isPast = false,
 }: MyRideActionsProps) {
   const router = useRouter();
 
@@ -25,8 +27,10 @@ export default function MyRideActions({
   const [error, setError] = useState("");
 
   const canManage =
+    !isPast &&
     status !== "cancelled" &&
-    status !== "completed";
+    status !== "completed" &&
+    status !== "ended";
 
   if (!canManage) {
     return null;
@@ -73,7 +77,6 @@ export default function MyRideActions({
 
   return (
     <div
-      className="mt-4"
       onClick={(event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -83,23 +86,23 @@ export default function MyRideActions({
         type="button"
         onClick={handleAction}
         disabled={loading}
-        className="inline-flex items-center gap-2 rounded-xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-rose-200 px-4 py-2.5 font-sans text-xs font-bold text-rose-600 transition hover:bg-rose-50 active:scale-98 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {isCreated ? (
-          <X size={15} />
+          <X size={14} />
         ) : (
-          <LogOut size={15} />
+          <LogOut size={14} />
         )}
 
         {loading
           ? "Processing..."
           : isCreated
-            ? "Cancel ride"
-            : "Leave ride"}
+            ? "Cancel Ride"
+            : "Leave Ride"}
       </button>
 
       {error && (
-        <p className="mt-2 text-xs text-red-500">
+        <p className="mt-1 text-center text-[11px] font-medium text-rose-600">
           {error}
         </p>
       )}

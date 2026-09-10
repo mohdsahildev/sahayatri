@@ -1,4 +1,5 @@
 import RideCard, { type Ride } from "./ride-card";
+import { SearchX } from "lucide-react";
 
 interface RideFeedProps {
   rides: Ride[];
@@ -13,74 +14,77 @@ export default function RideFeed({
   totalPages,
   searchParams,
 }: RideFeedProps) {
-
   function getPageUrl(
-    searchParams: Record<string, string | undefined>,
-    page: number
+    paramsObj: Record<string, string | undefined>,
+    targetPage: number
   ) {
     const params = new URLSearchParams();
 
-    Object.entries(searchParams).forEach(([key, value]) => {
+    Object.entries(paramsObj).forEach(([key, value]) => {
       if (value) {
         params.set(key, value);
       }
     });
 
-    params.set("page", String(page));
+    params.set("page", String(targetPage));
 
     return `/home?${params.toString()}`;
   }
 
   if (rides.length === 0) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center">
-        <h3 className="font-sans text-base font-bold text-secondary">
-          No rides found
+      <div className="rounded-3xl border border-[#EAE6DF] bg-white p-12 text-center shadow-xs">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FAF8F5] text-slate-400">
+          <SearchX size={28} />
+        </div>
+        <h3 className="mt-4 font-sans text-lg font-bold text-[#1E2022]">
+          No rides matching your search
         </h3>
-
-        <p className="mt-1 text-sm text-slate-500">
-          Try changing your search or filters.
+        <p className="mt-1 text-xs text-slate-500">
+          Try broadening your departure time, location, or price filters to see available journeys.
         </p>
       </div>
     );
   }
 
   return (
-    <section className="space-y-4">
+    <section className="mt-4 space-y-4">
       {rides.map((ride) => (
-        <RideCard key={ride.id} ride={ride} />
+        <RideCard
+          key={ride.id}
+          ride={ride}
+        />
       ))}
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-between pt-2">
+        <div className="flex items-center justify-between pt-4">
           {page > 1 ? (
             <a
               href={getPageUrl(searchParams, page - 1)}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-secondary transition hover:border-primary hover:text-primary"
+              className="rounded-xl border border-[#EAE6DF] bg-white px-4 py-2.5 text-xs font-bold text-[#1E2022] transition hover:border-[#1E2022] hover:bg-[#FAF8F5]"
             >
-              Previous
+              ← Previous Page
             </a>
           ) : (
             <div />
           )}
 
-          <span className="text-sm text-slate-500">
+          <span className="text-xs font-semibold text-slate-400">
             Page {page} of {totalPages}
           </span>
         
           {page < totalPages ? (
             <a
               href={getPageUrl(searchParams, page + 1)}
-              className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-secondary"
+              className="rounded-xl bg-[#C8522E] px-5 py-2.5 text-xs font-bold text-white transition hover:bg-[#B34524]"
             >
-              Next
+              Next Page →
             </a>
           ) : (
             <div />
           )}
         </div>
       )}
-
     </section>
   );
 }

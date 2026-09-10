@@ -114,23 +114,23 @@ export default function Navbar() {
   }, [isAuthenticated]);
 
   return (
-    <header className="border-b border-slate-200 bg-white">
-      <nav className="mx-auto flex h-18 max-w-7xl items-center justify-between px-4 md:px-8">
+    <header className="border-b border-[#EAE6DF] bg-white sticky top-0 z-40">
+      <nav className="mx-auto flex h-18 max-w-[1240px] items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Brand */}
         <Link
-          href="/"
+          href="/home"
           className="flex items-center gap-2"
           aria-label="SahaYatri home"
         >
           <Image
             src="/logo/SahaYatri-logo.svg"
             alt=""
-            width={60}
-            height={60}
+            width={48}
+            height={48}
             priority
           />
 
-          <span className="font-sans text-xl font-bold tracking-tight text-secondary">
+          <span className="font-sans text-xl font-bold tracking-tight text-[#1E2022]">
             SahaYatri
           </span>
         </Link>
@@ -139,14 +139,21 @@ export default function Navbar() {
         <div className="hidden items-center gap-8 md:flex">
           <Link
             href="/home"
-            className="font-sans text-sm font-semibold text-secondary"
+            className="font-sans text-sm font-bold text-[#C8522E]"
           >
-            Home
+            Find a Ride
+          </Link>
+
+          <Link
+            href="/post-ride"
+            className="font-sans text-sm font-semibold text-slate-600 transition hover:text-[#C8522E]"
+          >
+            Offer a Ride
           </Link>
 
           <Link
             href="/my-rides"
-            className="font-sans text-sm font-semibold text-slate-600 transition hover:text-primary"
+            className="font-sans text-sm font-semibold text-slate-600 transition hover:text-[#C8522E]"
           >
             My Rides
           </Link>
@@ -156,20 +163,14 @@ export default function Navbar() {
             aria-label={
               chatUnreadCount > 0
                 ? `${chatUnreadCount} unread chats`
-                : "Chats"
+                : "Messages"
             }
-            className="relative flex items-center gap-2 font-sans text-sm font-semibold text-slate-600 transition hover:text-primary"
+            className="relative flex items-center gap-2 font-sans text-sm font-semibold text-slate-600 transition hover:text-[#C8522E]"
           >
-            <MessageCircle size={18} />
-          
-            <span>Chats</span>
+            <span>Messages</span>
           
             {chatUnreadCount > 0 && (
-              <span className="absolute -right-3 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-white">
-                {chatUnreadCount > 99
-                  ? "99+"
-                  : chatUnreadCount}
-              </span>
+              <span className="flex h-2 w-2 rounded-full bg-[#C8522E]" />
             )}
           </Link>
         </div>
@@ -183,50 +184,57 @@ export default function Navbar() {
                 ? `${unreadCount} unread notifications`
                 : "Notifications"
             }
-            className="relative"
+            className="relative flex h-10 w-10 items-center justify-center rounded-full text-slate-600 hover:bg-[#FAF8F5] transition"
           >
-            <Bell size={20} />
+            <Bell size={19} />
 
             {unreadCount > 0 && (
-              <span className="absolute -right-2 -top-2 flex min-w-4 h-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
+              <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#C8522E] px-1 text-[9px] font-bold text-white">
                 {unreadCount > 99 ? "99+" : unreadCount}
               </span>
             )}
           </Link>
 
+          {/* User Badge / Profile */}
           <Link
             href="/profile"
             aria-label="Profile"
-            className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-secondary font-sans text-sm font-bold text-white transition hover:bg-primary"
+            className="flex items-center gap-2 rounded-full border border-[#EAE6DF] bg-[#FAF8F5] p-1.5 pr-3 transition hover:border-slate-300"
           >
-            {user?.profilePic ? (
-              <img
-                src={user.profilePic}
-                alt=""
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              user?.name?.charAt(0).toUpperCase() ?? "S"
-            )}
+            <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-[#1E2022] font-sans text-xs font-bold text-white">
+              {user?.profilePic ? (
+                <img
+                  src={user.profilePic}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                user?.name?.charAt(0).toUpperCase() ?? "S"
+              )}
+            </div>
+
+            <div className="hidden text-left sm:block">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-bold text-[#1E2022]">
+                  {user?.name ?? "SahaYatri User"}
+                </span>
+                <span className="text-[10px] font-bold text-[#2E6F40]">✓ Verified</span>
+              </div>
+            </div>
           </Link>
 
-          <Link
-            href="/post-ride"
-            className="hidden rounded-xl bg-primary px-5 py-2.5 font-sans text-sm font-bold text-white transition hover:bg-secondary sm:block"
-          >
-            + Post Ride
-          </Link>
-
-          {/* Temporary logout */}
-          <button
-            type="button"
-            onClick={handleLogout}
-            aria-label="Log out"
-            title="Log out"
-            className="flex h-10 w-10 items-center justify-center rounded-full text-slate-500 transition hover:bg-red-50 hover:text-red-600"
-          >
-            <LogOut size={18} strokeWidth={1.8} />
-          </button>
+          {/* Logout */}
+          {isAuthenticated && (
+            <button
+              type="button"
+              onClick={handleLogout}
+              aria-label="Log out"
+              title="Log out"
+              className="flex h-9 w-9 items-center justify-center rounded-full text-slate-400 transition hover:bg-red-50 hover:text-red-600"
+            >
+              <LogOut size={16} strokeWidth={1.8} />
+            </button>
+          )}
         </div>
       </nav>
     </header>

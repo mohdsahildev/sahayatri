@@ -1,14 +1,8 @@
 import Navbar from "@/components/layout/navbar";
-import HeroSection from "@/components/home/hero-section";
-import RideSearch from "@/components/home/ride-search";
-import PostRideCta from "@/components/home/post-ride-cta";
-import RideFilters from "@/components/home/ride-filters";
-import RideFeed from "@/components/home/ride-feed";
-import NearbyRides from "@/components/home/nearby-rides";
-import {
-  getRides,
-  mapApiRideToRide,
-} from "@/lib/api/rides";
+import HomeView from "@/components/home/home-view";
+import RecentActivitySection from "@/components/home/recent-activity";
+import ScenicRouteTeaser from "@/components/home/scenic-route-teaser";
+import { getRides, mapApiRideToRide } from "@/lib/api/rides";
 
 interface HomePageProps {
   searchParams: Promise<{
@@ -26,40 +20,29 @@ interface HomePageProps {
   }>;
 }
 
-export default async function HomePage({
-  searchParams,
-}: HomePageProps) {
+export default async function HomePage({ searchParams }: HomePageProps) {
   const params = await searchParams;
-
   const rideData = await getRides(params);
-
   const rides = rideData.rides.map(mapApiRideToRide);
 
   return (
-    <>
+    <div className="min-h-screen bg-[#FAF8F5] font-sans text-[#1E2022]">
       <Navbar />
 
-      <main className="mx-auto w-full max-w-[1440px] px-5 pb-16 sm:px-8 lg:px-10">
-        <HeroSection />
-        <RideSearch />
-        <PostRideCta />
-        <RideFilters />
+      <main className="mx-auto max-w-[1240px] px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        <HomeView
+          rides={rides}
+          page={rideData.page}
+          totalPages={rideData.totalPages}
+          searchParams={params}
+        />
 
-        <div className="mt-6 grid min-w-0 grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
-          <div className="min-w-0">
-            <RideFeed
-              rides={rides}
-              page={rideData.page}
-              totalPages={rideData.totalPages}
-              searchParams={params}
-            />
-          </div>
+        {/* Compact Recent Activity Section */}
+        <RecentActivitySection />
 
-          <div className="min-w-0">
-            <NearbyRides />
-          </div>
-        </div>
+        {/* Take the Scenic Route Mini-Game Teaser */}
+        <ScenicRouteTeaser />
       </main>
-    </>
+    </div>
   );
 }
