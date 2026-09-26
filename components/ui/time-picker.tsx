@@ -105,7 +105,27 @@ export default function TimePicker({
   }
 
   const hoursList = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
-  const minutesList = ["00", "15", "30", "45"];
+  const minutesList = Array.from({ length: 60 }, (_, i) => padZero(i));
+
+  const selectedHourRef = useRef<HTMLButtonElement | null>(null);
+  const selectedMinuteRef = useRef<HTMLButtonElement | null>(null);
+
+  // Auto-scroll selected hour and minute into view when popover opens
+  useEffect(() => {
+    if (isOpen) {
+      const timer = setTimeout(() => {
+        selectedHourRef.current?.scrollIntoView({
+          block: "center",
+          behavior: "smooth",
+        });
+        selectedMinuteRef.current?.scrollIntoView({
+          block: "center",
+          behavior: "smooth",
+        });
+      }, 60);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
 
   return (
     <div ref={containerRef} className={`relative w-full ${className}`}>
@@ -157,20 +177,24 @@ export default function TimePicker({
                 Hour
               </label>
               <div className="max-h-36 overflow-y-auto space-y-1 pr-1 scrollbar-thin">
-                {hoursList.map((h) => (
-                  <button
-                    key={h}
-                    type="button"
-                    onClick={() => emitTime(h, selectedMinute, selectedPeriod)}
-                    className={`w-full py-1 text-center font-sans text-xs font-bold rounded-lg transition ${
-                      selectedHour12 === h
-                        ? "bg-[#C8522E] text-white"
-                        : "text-[#1E2022] hover:bg-[#FAF0EB] hover:text-[#C8522E]"
-                    }`}
-                  >
-                    {h}
-                  </button>
-                ))}
+                {hoursList.map((h) => {
+                  const isSelected = selectedHour12 === h;
+                  return (
+                    <button
+                      key={h}
+                      ref={isSelected ? selectedHourRef : null}
+                      type="button"
+                      onClick={() => emitTime(h, selectedMinute, selectedPeriod)}
+                      className={`w-full py-1 text-center font-sans text-xs font-bold rounded-lg transition ${
+                        isSelected
+                          ? "bg-[#C8522E] text-white"
+                          : "text-[#1E2022] hover:bg-[#FAF0EB] hover:text-[#C8522E]"
+                      }`}
+                    >
+                      {h}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -179,21 +203,25 @@ export default function TimePicker({
               <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 text-center">
                 Min
               </label>
-              <div className="max-h-36 overflow-y-auto space-y-1 pr-1">
-                {minutesList.map((m) => (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => emitTime(selectedHour12, m, selectedPeriod)}
-                    className={`w-full py-1 text-center font-sans text-xs font-bold rounded-lg transition ${
-                      selectedMinute === m
-                        ? "bg-[#C8522E] text-white"
-                        : "text-[#1E2022] hover:bg-[#FAF0EB] hover:text-[#C8522E]"
-                    }`}
-                  >
-                    {m}
-                  </button>
-                ))}
+              <div className="max-h-36 overflow-y-auto space-y-1 pr-1 scrollbar-thin">
+                {minutesList.map((m) => {
+                  const isSelected = selectedMinute === m;
+                  return (
+                    <button
+                      key={m}
+                      ref={isSelected ? selectedMinuteRef : null}
+                      type="button"
+                      onClick={() => emitTime(selectedHour12, m, selectedPeriod)}
+                      className={`w-full py-1 text-center font-sans text-xs font-bold rounded-lg transition ${
+                        isSelected
+                          ? "bg-[#C8522E] text-white"
+                          : "text-[#1E2022] hover:bg-[#FAF0EB] hover:text-[#C8522E]"
+                      }`}
+                    >
+                      {m}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
