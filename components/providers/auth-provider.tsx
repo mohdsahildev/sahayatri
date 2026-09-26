@@ -104,12 +104,19 @@ export default function AuthProvider({
       return;
     }
 
-    connectSocket(accessToken);
+    const socket = connectSocket(accessToken);
+
+    const handleConnect = () => {
+      router.refresh();
+    };
+
+    socket.on("connect", handleConnect);
 
     return () => {
+      socket.off("connect", handleConnect);
       disconnectSocket();
     };
-  }, [accessToken]);
+  }, [accessToken, router]);
 
   if (isRestoring) {
     return null;
