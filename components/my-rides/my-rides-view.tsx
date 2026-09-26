@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Calendar, Compass, History, Plus } from "lucide-react";
 import type { MyRide } from "@/lib/api/rides";
+import { getSocket } from "@/lib/socket";
 import DriverRideCard from "./driver-ride-card";
 import PassengerRideCard from "./passenger-ride-card";
 
@@ -18,7 +20,34 @@ export default function MyRidesView({
   createdRides = [],
   joinedRides = [],
 }: MyRidesViewProps) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"upcoming" | "past">("upcoming");
+
+  useEffect(() => {
+    const socket = getSocket();
+
+    const handleRefresh = () => {
+      router.refresh();
+    };
+
+    socket.on("ride_created", handleRefresh);
+    socket.on("ride_updated", handleRefresh);
+    socket.on("ride_cancelled", handleRefresh);
+    socket.on("ride_started", handleRefresh);
+    socket.on("ride_join_accepted", handleRefresh);
+    socket.on("ride_join_rejected", handleRefresh);
+    socket.on("passenger_verified", handleRefresh);
+
+    return () => {
+      socket.off("ride_created", handleRefresh);
+      socket.off("ride_updated", handleRefresh);
+      socket.off("ride_cancelled", handleRefresh);
+      socket.off("ride_started", handleRefresh);
+      socket.off("ride_join_accepted", handleRefresh);
+      socket.off("ride_join_rejected", handleRefresh);
+      socket.off("passenger_verified", handleRefresh);
+    };
+  }, [router]);
 
   const now = new Date().getTime();
 

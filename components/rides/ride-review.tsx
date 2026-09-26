@@ -129,12 +129,12 @@ export default function RideReview({
   return (
     <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
       <div>
-        <h3 className="text-sm font-bold text-secondary">
+        <h3 className="text-sm font-bold text-[#1E2022]">
           Rate{" "}
           {target.id ? (
             <Link
               href={`/profile/${target.id}`}
-              className="transition hover:text-primary"
+              className="transition hover:text-[#C8522E]"
             >
               {target.name}
             </Link>
@@ -181,7 +181,7 @@ export default function RideReview({
         maxLength={500}
         rows={3}
         placeholder="Share your experience (optional)"
-        className="mt-3 w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-xs outline-none transition focus:border-primary"
+        className="mt-3 w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-xs outline-none transition focus:border-[#C8522E]"
       />
 
       <div className="mt-1 text-right text-[11px] text-slate-400">
@@ -198,7 +198,7 @@ export default function RideReview({
         type="button"
         onClick={handleSubmit}
         disabled={submitting || !rating}
-        className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-xs font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+        className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-[#C8522E] px-3 py-2.5 text-xs font-bold text-white transition hover:bg-[#B04322] disabled:cursor-not-allowed disabled:opacity-50"
       >
         <Send size={14} />
         {submitting ? "Submitting..." : "Submit review"}

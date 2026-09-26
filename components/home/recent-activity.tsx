@@ -4,32 +4,45 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { CheckCircle2, MessageSquare, Star, ArrowRight, Bell } from "lucide-react";
 import { useAuthStore } from "@/lib/stores/auth.store";
-import { getNotifications, type Notification } from "@/lib/api/notifications";
+import { useNotificationStore } from "@/lib/stores/notification.store";
+import { getNotifications } from "@/lib/api/notifications";
 
 export default function RecentActivitySection() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
+  const storeNotifications = useNotificationStore((state) => state.notifications);
+  const setStoreNotifications = useNotificationStore((state) => state.setNotifications);
+  const [loading, setLoading] = useState(storeNotifications.length === 0);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      setLoading(false);
+    if (!isAuthenticated || storeNotifications.length > 0) {
       return;
     }
 
+    let isMounted = true;
     async function loadActivity() {
       try {
         const response = await getNotifications(1, 3);
-        setNotifications(response.data.notifications ?? []);
+        if (isMounted) {
+          const fetched = response.data.notifications ?? [];
+          setStoreNotifications(fetched);
+        }
       } catch (error) {
         console.error("Unable to load recent activity:", error);
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     }
 
     loadActivity();
-  }, [isAuthenticated]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isAuthenticated, storeNotifications.length, setStoreNotifications]);
+
+  const notifications = storeNotifications.slice(0, 3);
 
   function getActivityIcon(type?: string) {
     if (type === "chat_message" || type === "chat") {

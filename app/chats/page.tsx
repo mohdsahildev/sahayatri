@@ -10,17 +10,22 @@ import Navbar from "@/components/layout/navbar";
 
 export default function ChatsPage() {
   const user = useAuthStore((state) => state.user);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   const [chats, setChats] = useState<Chat[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterTab, setFilterTab] = useState<"all" | "unread">("all");
 
   useEffect(() => {
+    if (!isAuthenticated) return;
+
+    let isMounted = true;
     async function loadChats() {
       setLoading(true);
       try {
         const response = await getChats();
+        if (!isMounted) return;
         const loadedChats = response.data?.chats ?? [];
 
         const chatsWithLocalReadState = loadedChats.map((chat) => {
@@ -41,14 +46,22 @@ export default function ChatsPage() {
       } catch (error) {
         console.error("Unable to load chats:", error);
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     }
 
     loadChats();
-  }, []);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isAuthenticated]);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
+
     const socket = getSocket();
 
     const handleNotification = (payload: {
@@ -73,7 +86,16 @@ export default function ChatsPage() {
       setChats((current) => {
         const index = current.findIndex((chat) => chat._id === chatId);
 
-        if (index === -1) return current;
+        if (index === -1) {
+          getChats()
+            .then((res) => {
+              if (res.data?.chats) {
+                setChats(res.data.chats);
+              }
+            })
+            .catch(() => {});
+          return current;
+        }
 
         const chat = current[index];
 
@@ -150,211 +172,232 @@ export default function ChatsPage() {
       <Navbar />
 
       <main className="mx-auto w-full max-w-4xl px-5 py-8 sm:px-8">
-        {/* Top Tag & Title Header */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <span className="text-xs font-bold uppercase tracking-wider text-[#C8522E]">
-              ● RIDE COORDINATION
-            </span>
-            <h1 className="mt-1 font-sans text-3xl font-black tracking-tight text-[#1E2022] sm:text-4xl">
-              Messages
+        {!isAuthenticated ? (
+          <div className="rounded-3xl border border-[#EAE6DF] bg-white p-10 sm:p-12 text-center shadow-xs space-y-4 my-8">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FAF8F5] border border-[#EAE6DF] mx-auto text-[#C8522E]">
+              <MessageSquare size={26} />
+            </div>
+            <h1 className="font-sans text-2xl sm:text-3xl font-black text-[#1E2022]">
+              Authentication Required
             </h1>
-            <p className="mt-1 text-sm text-slate-500">
-              Your direct ride coordination with hosts and co-travelers.
+            <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto">
+              Please sign in to view your conversations and coordinate with hosts and co-travelers.
             </p>
-          </div>
-
-          {totalUnread > 0 && (
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#D0E5D5] bg-[#EAF4ED] px-4 py-1.5 text-xs font-bold text-[#2E6F40]">
-              <span className="h-2 w-2 rounded-full bg-[#2E6F40] animate-pulse" />
-              <span>{totalUnread} unread transit update{totalUnread > 1 ? "s" : ""}</span>
+            <div className="pt-2">
+              <Link
+                href="/login"
+                className="inline-flex items-center justify-center rounded-xl bg-[#C8522E] px-6 py-2.5 font-sans text-xs font-bold text-white shadow-xs transition hover:bg-[#B34524]"
+              >
+                Sign In to SahaYatri
+              </Link>
             </div>
-          )}
-        </div>
-
-        {/* Search & Filter Bar */}
-        <div className="mt-8 flex flex-col gap-3 rounded-2xl border border-[#EAE6DF] bg-white p-3 shadow-xs sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-1 items-center gap-2 rounded-xl bg-[#FAF8F5] px-3.5 py-2.5">
-            <Search size={17} className="text-slate-400 shrink-0" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search conversations by name or route..."
-              className="w-full bg-transparent text-sm font-semibold text-[#1E2022] outline-none placeholder:text-slate-400"
-            />
           </div>
-
-          <div className="flex items-center gap-1.5 self-end sm:self-auto">
-            <button
-              type="button"
-              onClick={() => setFilterTab("all")}
-              className={`rounded-xl px-4 py-2 text-xs font-bold transition ${
-                filterTab === "all"
-                  ? "bg-[#1E2022] text-white"
-                  : "bg-[#FAF8F5] text-slate-600 hover:bg-slate-100"
-              }`}
-            >
-              All
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setFilterTab("unread")}
-              className={`rounded-xl px-4 py-2 text-xs font-bold transition ${
-                filterTab === "unread"
-                  ? "bg-[#C8522E] text-white"
-                  : "bg-[#FAF8F5] text-slate-600 hover:bg-slate-100"
-              }`}
-            >
-              Unread ({totalUnread})
-            </button>
-          </div>
-        </div>
-
-        {/* Conversation List */}
-        <div className="mt-6">
-          {loading ? (
-            <div className="rounded-3xl border border-[#EAE6DF] bg-white p-12 text-center shadow-xs">
-              <p className="text-sm font-semibold text-slate-500">
-                Loading conversations...
-              </p>
-            </div>
-          ) : filteredChats.length === 0 ? (
-            <div className="rounded-3xl border border-[#EAE6DF] bg-white p-12 text-center shadow-xs">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FAF8F5] text-slate-400">
-                <MessageSquare size={28} />
+        ) : (
+          <>
+            {/* Page Header */}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h1 className="font-sans text-3xl font-black tracking-tight text-[#1E2022] sm:text-4xl">
+                  Messages
+                </h1>
+                <p className="mt-1 text-sm text-slate-500">
+                  Your direct ride coordination with hosts and co-travelers.
+                </p>
               </div>
-              <h3 className="mt-4 font-sans text-lg font-bold text-[#1E2022]">
-                No conversations found
-              </h3>
-              <p className="mt-1 text-xs text-slate-500">
-                {searchQuery || filterTab === "unread"
-                  ? "Try adjusting your search or filter tab."
-                  : "Your active ride conversations will appear here as soon as you connect with another traveler."}
-              </p>
+
+              {totalUnread > 0 && (
+                <div className="inline-flex items-center gap-2 rounded-full border border-[#D0E5D5] bg-[#EAF4ED] px-4 py-1.5 text-xs font-bold text-[#2E6F40]">
+                  <span className="h-2 w-2 rounded-full bg-[#2E6F40] animate-pulse" />
+                  <span>{totalUnread} unread transit update{totalUnread > 1 ? "s" : ""}</span>
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="space-y-3">
-              {filteredChats.map((chat) => {
-                const participant = getOtherParticipant(chat);
-                const unread = chat.unreadCount ?? 0;
 
-                return (
-                  <div
-                    key={chat._id}
-                    className="relative flex items-center justify-between gap-4 rounded-2xl border border-[#EAE6DF] bg-white p-5 shadow-xs transition hover:border-[#C8522E]/40 hover:shadow-md"
-                  >
-                    {/* Main Chat Navigation Overlay */}
-                    <Link
-                      href={`/chats/${chat._id}`}
-                      className="absolute inset-0 z-0 rounded-2xl"
-                      aria-label={`Open conversation with ${participant?.name ?? "SahaYatri User"}`}
-                    />
+            {/* Search & Filter Bar */}
+            <div className="mt-8 flex flex-col gap-3 rounded-2xl border border-[#EAE6DF] bg-white p-3 shadow-xs sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-1 items-center gap-2 rounded-xl bg-[#FAF8F5] px-3.5 py-2.5">
+                <Search size={17} className="text-slate-400 shrink-0" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search conversations by name or route..."
+                  className="w-full bg-transparent text-sm font-semibold text-[#1E2022] outline-none placeholder:text-slate-400"
+                />
+              </div>
 
-                    <div className="relative z-10 flex min-w-0 items-center gap-4 pointer-events-none">
-                      {/* Avatar with status dot */}
-                      {participant?._id ? (
+              <div className="flex items-center gap-1.5 self-end sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => setFilterTab("all")}
+                  className={`rounded-xl px-4 py-2 text-xs font-bold transition ${
+                    filterTab === "all"
+                      ? "bg-[#1E2022] text-white"
+                      : "bg-[#FAF8F5] text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  All
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setFilterTab("unread")}
+                  className={`rounded-xl px-4 py-2 text-xs font-bold transition ${
+                    filterTab === "unread"
+                      ? "bg-[#C8522E] text-white"
+                      : "bg-[#FAF8F5] text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  Unread ({totalUnread})
+                </button>
+              </div>
+            </div>
+
+            {/* Conversation List */}
+            <div className="mt-6">
+              {loading ? (
+                <div className="rounded-3xl border border-[#EAE6DF] bg-white p-12 text-center shadow-xs">
+                  <p className="text-sm font-semibold text-slate-500">
+                    Loading conversations...
+                  </p>
+                </div>
+              ) : filteredChats.length === 0 ? (
+                <div className="rounded-3xl border border-[#EAE6DF] bg-white p-12 text-center shadow-xs">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FAF8F5] text-slate-400">
+                    <MessageSquare size={28} />
+                  </div>
+                  <h3 className="mt-4 font-sans text-lg font-bold text-[#1E2022]">
+                    No conversations found
+                  </h3>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {searchQuery || filterTab === "unread"
+                      ? "Try adjusting your search or filter tab."
+                      : "Your active ride conversations will appear here as soon as you connect with another traveler."}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {filteredChats.map((chat) => {
+                    const participant = getOtherParticipant(chat);
+                    const unread = chat.unreadCount ?? 0;
+
+                    return (
+                      <div
+                        key={chat._id}
+                        className="relative flex items-center justify-between gap-4 rounded-2xl border border-[#EAE6DF] bg-white p-5 shadow-xs transition hover:border-[#C8522E]/40 hover:shadow-md"
+                      >
+                        {/* Main Chat Navigation Overlay */}
                         <Link
-                          href={`/profile/${participant._id}`}
-                          className="pointer-events-auto relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#FAF8F5] border border-[#EAE6DF] font-sans font-bold text-[#1E2022] transition hover:opacity-90"
-                        >
-                          {participant.profilePic ? (
-                            <img
-                              src={participant.profilePic}
-                              alt=""
-                              className="h-full w-full rounded-full object-cover"
-                            />
-                          ) : (
-                            participant.name?.charAt(0).toUpperCase() ?? "S"
-                          )}
-                          <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-[#2E6F40]" />
-                        </Link>
-                      ) : (
-                        <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#FAF8F5] border border-[#EAE6DF] font-sans font-bold text-[#1E2022]">
-                          {participant?.name?.charAt(0).toUpperCase() ?? "S"}
-                          <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-[#2E6F40]" />
-                        </div>
-                      )}
+                          href={`/chats/${chat._id}`}
+                          className="absolute inset-0 z-0 rounded-2xl"
+                          aria-label={`Open conversation with ${participant?.name ?? "SahaYatri User"}`}
+                        />
 
-                      {/* Details */}
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
+                        <div className="relative z-10 flex min-w-0 items-center gap-4 pointer-events-none">
+                          {/* Avatar with status dot */}
                           {participant?._id ? (
                             <Link
                               href={`/profile/${participant._id}`}
-                              className="pointer-events-auto font-sans font-bold text-[#1E2022] truncate text-base hover:text-[#C8522E] transition"
+                              className="pointer-events-auto relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#FAF8F5] border border-[#EAE6DF] font-sans font-bold text-[#1E2022] transition hover:opacity-90"
                             >
-                              {participant.name ?? "SahaYatri User"}
+                              {participant.profilePic ? (
+                                <img
+                                  src={participant.profilePic}
+                                  alt=""
+                                  className="h-full w-full rounded-full object-cover"
+                                />
+                              ) : (
+                                participant.name?.charAt(0).toUpperCase() ?? "S"
+                              )}
+                              <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-[#2E6F40]" />
                             </Link>
                           ) : (
-                            <h2 className="font-sans font-bold text-[#1E2022] truncate text-base">
-                              {participant?.name ?? "SahaYatri User"}
-                            </h2>
+                            <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#FAF8F5] border border-[#EAE6DF] font-sans font-bold text-[#1E2022]">
+                              {participant?.name?.charAt(0).toUpperCase() ?? "S"}
+                              <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-[#2E6F40]" />
+                            </div>
                           )}
 
-                          <span className="rounded-full bg-[#EAF4ED] px-2.5 py-0.5 text-[10px] font-bold text-[#2E6F40]">
-                            Verified Match
-                          </span>
+                          {/* Details */}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              {participant?._id ? (
+                                <Link
+                                  href={`/profile/${participant._id}`}
+                                  className="pointer-events-auto font-sans font-bold text-[#1E2022] truncate text-base hover:text-[#C8522E] transition"
+                                >
+                                  {participant.name ?? "SahaYatri User"}
+                                </Link>
+                              ) : (
+                                <h2 className="font-sans font-bold text-[#1E2022] truncate text-base">
+                                  {participant?.name ?? "SahaYatri User"}
+                                </h2>
+                              )}
+
+                              <span className="rounded-full bg-[#EAF4ED] px-2.5 py-0.5 text-[10px] font-bold text-[#2E6F40]">
+                                Verified Match
+                              </span>
+                            </div>
+
+                            <p
+                              className={`mt-1 truncate text-xs ${
+                                unread ? "font-bold text-[#1E2022]" : "text-slate-500"
+                              }`}
+                            >
+                              &ldquo;{chat.lastMessage?.text ?? "No messages yet"}&rdquo;
+                            </p>
+                          </div>
                         </div>
 
-                        <p
-                          className={`mt-1 truncate text-xs ${
-                            unread ? "font-bold text-[#1E2022]" : "text-slate-500"
-                          }`}
-                        >
-                          &ldquo;{chat.lastMessage?.text ?? "No messages yet"}&rdquo;
-                        </p>
+                        {/* Right Meta (Timestamp & Unread Badge) */}
+                        <div className="relative z-10 flex shrink-0 flex-col items-end gap-1.5 pointer-events-none">
+                          <span className="text-[11px] font-semibold text-slate-400">
+                            {formatRelativeTime(chat.updatedAt)}
+                          </span>
+
+                          {unread > 0 ? (
+                            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#C8522E] px-1.5 text-[11px] font-black text-white shadow-xs">
+                              {unread > 99 ? "99+" : unread}
+                            </span>
+                          ) : (
+                            <CheckCheck size={16} className="text-slate-300" />
+                          )}
+                        </div>
                       </div>
-                    </div>
-
-                    {/* Right Meta (Timestamp & Unread Badge) */}
-                    <div className="relative z-10 flex shrink-0 flex-col items-end gap-1.5 pointer-events-none">
-                      <span className="text-[11px] font-semibold text-slate-400">
-                        {formatRelativeTime(chat.updatedAt)}
-                      </span>
-
-                      {unread > 0 ? (
-                        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#C8522E] px-1.5 text-[11px] font-black text-white shadow-xs">
-                          {unread > 99 ? "99+" : unread}
-                        </span>
-                      ) : (
-                        <CheckCheck size={16} className="text-slate-300" />
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        {/* Ride Communication Guidelines Box */}
-        <div className="mt-10 rounded-3xl border border-[#EAE6DF] bg-[#FAF8F5] p-8 text-center shadow-xs">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white border border-[#EAE6DF] text-[#C8522E]">
-            <MessageSquare size={22} />
-          </div>
+            {/* Ride Communication Guidelines Box */}
+            <div className="mt-10 rounded-3xl border border-[#EAE6DF] bg-[#FAF8F5] p-8 text-center shadow-xs">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white border border-[#EAE6DF] text-[#C8522E]">
+                <MessageSquare size={22} />
+              </div>
 
-          <h3 className="mt-4 font-sans text-lg font-bold text-[#1E2022]">
-            Ride Communication Guidelines
-          </h3>
+              <h3 className="mt-4 font-sans text-lg font-bold text-[#1E2022]">
+                Ride Communication Guidelines
+              </h3>
 
-          <p className="mx-auto mt-2 max-w-xl text-xs leading-relaxed text-slate-600">
-            Chat is enabled strictly for coordinating pickup spots, delays, and passenger
-            convenience along verified routes. Your ride conversations will appear here as soon as you connect with another traveler.
-          </p>
+              <p className="mx-auto mt-2 max-w-xl text-xs leading-relaxed text-slate-600">
+                Chat is enabled strictly for coordinating pickup spots, delays, and passenger
+                convenience along verified routes. Your ride conversations will appear here as soon as you connect with another traveler.
+              </p>
 
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-6 text-[11px] font-bold text-slate-500 border-t border-[#EAE6DF] pt-5">
-            <div className="flex items-center gap-1.5">
-              <ShieldCheck size={14} className="text-[#2E6F40]" />
-              <span>End-to-end verified transit profiles</span>
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-6 text-[11px] font-bold text-slate-500 border-t border-[#EAE6DF] pt-5">
+                <div className="flex items-center gap-1.5">
+                  <ShieldCheck size={14} className="text-[#2E6F40]" />
+                  <span>End-to-end verified transit profiles</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <ShieldCheck size={14} className="text-[#2E6F40]" />
+                  <span>Direct intercity transit dispatch</span>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-1.5">
-              <ShieldCheck size={14} className="text-[#2E6F40]" />
-              <span>Direct intercity transit dispatch</span>
-            </div>
-          </div>
-        </div>
+          </>
+        )}
       </main>
     </>
   );

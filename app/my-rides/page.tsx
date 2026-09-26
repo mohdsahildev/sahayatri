@@ -52,11 +52,6 @@ export default async function MyRidesPage() {
         {/* Page Header */}
         <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <div className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-[#C8522E]">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#C8522E]" />
-              <span>Transit Journal</span>
-            </div>
-
             <h1 className="mt-1 font-sans text-3xl sm:text-4xl font-black tracking-tight text-[#1E2022]">
               My Rides
             </h1>

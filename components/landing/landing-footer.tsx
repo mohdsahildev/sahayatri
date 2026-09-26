@@ -7,50 +7,39 @@ import { CheckCircle2 } from "lucide-react";
 export default function LandingFooter() {
   return (
     <footer className="border-t border-[#EAE6DF] bg-[#121417] text-white">
-      <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 lg:px-10">
-        <div className="grid grid-cols-1 gap-12 lg:grid-cols-12">
-          {/* Brand Mission */}
-          <div className="lg:col-span-5">
-            <Link href="/" className="inline-flex items-center gap-2.5">
+      <div className="mx-auto max-w-7xl px-5 py-14 sm:px-8 lg:px-10">
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-12">
+          {/* Brand & Description */}
+          <div className="lg:col-span-6">
+            <Link href="/home" className="inline-flex items-center gap-2.5">
               <Image
                 src="/logo/SahaYatri-logo.svg"
                 alt="SahaYatri Logo"
-                width={40}
-                height={40}
+                width={36}
+                height={36}
               />
-              <span className="font-sans text-2xl font-black tracking-tight text-white">
+              <span className="font-sans text-xl font-black tracking-tight text-white">
                 SahaYatri
               </span>
             </Link>
 
-            <p className="mt-4 max-w-md text-xs leading-relaxed text-slate-400 sm:text-sm">
-              Re-imagining intercity mobility for real people. Free from surge fees,
-              excessive commission algorithms, or unverified passenger matches.
+            <p className="mt-3 max-w-md text-xs leading-relaxed text-slate-400">
+              Community carpooling platform connecting verified drivers and passengers
+              for scheduled intercity and regional travel.
             </p>
-
-            <div className="mt-6 space-y-2 text-xs font-semibold text-slate-300">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 size={15} className="text-[#2E6F40]" />
-                <span>Verified Community Reviews & Ratings</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 size={15} className="text-[#2E6F40]" />
-                <span>Boarding PIN Security Standards Enabled</span>
-              </div>
-            </div>
           </div>
 
           {/* Nav Links Columns */}
-          <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 lg:col-span-7">
-            {/* PLATFORM */}
+          <div className="grid grid-cols-2 gap-8 sm:grid-cols-2 lg:col-span-6">
+            {/* PLATFORM NAVIGATION */}
             <div>
               <h3 className="text-xs font-bold uppercase tracking-wider text-[#C8522E]">
-                PLATFORM
+                Platform
               </h3>
-              <ul className="mt-4 space-y-2.5 text-xs font-semibold text-slate-400">
+              <ul className="mt-3.5 space-y-2 text-xs font-semibold text-slate-400">
                 <li>
                   <Link href="/home" className="transition hover:text-white">
-                    Find Rides
+                    Find a Ride
                   </Link>
                 </li>
                 <li>
@@ -59,56 +48,33 @@ export default function LandingFooter() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/home" className="transition hover:text-white">
-                    How It Works
+                  <Link href="/my-rides" className="transition hover:text-white">
+                    My Rides
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* ACCOUNT & COMMUNITY */}
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#C8522E]">
+                Account
+              </h3>
+              <ul className="mt-3.5 space-y-2 text-xs font-semibold text-slate-400">
+                <li>
+                  <Link href="/profile" className="transition hover:text-white">
+                    My Profile
                   </Link>
                 </li>
                 <li>
-                  <span className="text-slate-600">Toll & Fare Calculator</span>
-                </li>
-              </ul>
-            </div>
-
-            {/* TRUST & SAFETY */}
-            <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[#C8522E]">
-                TRUST & SAFETY
-              </h3>
-              <ul className="mt-4 space-y-2.5 text-xs font-semibold text-slate-400">
-                <li>
-                  <a href="#safety" className="transition hover:text-white">
-                    Safety Standards
-                  </a>
+                  <Link href="/notifications" className="transition hover:text-white">
+                    Notifications
+                  </Link>
                 </li>
                 <li>
-                  <span className="text-slate-600">Driver Verification</span>
-                </li>
-                <li>
-                  <span className="text-slate-600">Community Guidelines</span>
-                </li>
-                <li>
-                  <span className="text-slate-600">Help Center & Support</span>
-                </li>
-              </ul>
-            </div>
-
-            {/* COMPANY */}
-            <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[#C8522E]">
-                COMPANY
-              </h3>
-              <ul className="mt-4 space-y-2.5 text-xs font-semibold text-slate-400">
-                <li>
-                  <span className="text-slate-600">Our Story</span>
-                </li>
-                <li>
-                  <span className="text-slate-600">Sustainability</span>
-                </li>
-                <li>
-                  <span className="text-slate-600">Press & Media</span>
-                </li>
-                <li>
-                  <span className="text-slate-600">Terms of Service</span>
+                  <Link href="/chats" className="transition hover:text-white">
+                    Messages
+                  </Link>
                 </li>
               </ul>
             </div>
@@ -116,12 +82,10 @@ export default function LandingFooter() {
         </div>
 
         {/* Legal Bottom Bar */}
-        <div className="mt-16 flex flex-col items-center justify-between gap-4 border-t border-slate-800 pt-8 text-[11px] text-slate-500 sm:flex-row">
-          <p>© 2026 SahaYatri Mobility Technologies Pvt. Ltd. All rights reserved.</p>
-          <div className="flex items-center gap-6">
-            <span>Privacy Policy</span>
-            <span>Terms of Service</span>
-            <span>Security Standard</span>
+        <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-slate-800 pt-6 text-[11px] text-slate-500 sm:flex-row">
+          <p>© 2026 SahaYatri. All rights reserved.</p>
+          <div className="flex items-center gap-4 text-slate-500">
+            <span>Intercity Carpool Mobility</span>
           </div>
         </div>
       </div>

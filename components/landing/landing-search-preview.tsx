@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { MapPin, Calendar, Users, Search, ArrowLeftRight } from "lucide-react";
-import LocationSearch from "@/components/location/location-search";
+import { MapPin, Search, ArrowLeftRight } from "lucide-react";
+import DatePicker from "@/components/ui/date-picker";
+import SeatPicker from "@/components/ui/seat-picker";
 
 export default function LandingSearchPreview() {
   const router = useRouter();
@@ -83,39 +84,30 @@ export default function LandingSearchPreview() {
           </div>
 
           {/* DATE */}
-          <div className="rounded-2xl border border-slate-100 bg-[#FAF8F5] px-4 py-3">
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400">
+          <div className="rounded-2xl border border-slate-100 bg-[#FAF8F5] px-4 py-2.5">
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
               DATE
             </label>
-            <div className="mt-1 flex items-center gap-2">
-              <Calendar size={16} className="text-slate-400 shrink-0" />
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full bg-transparent text-sm font-bold text-[#1E2022] outline-none"
-              />
-            </div>
+            <DatePicker
+              value={date}
+              onChange={setDate}
+              minDate={new Date().toISOString().split("T")[0]}
+              placeholder="Choose date"
+              allowClear
+            />
           </div>
 
           {/* SEATS */}
-          <div className="rounded-2xl border border-slate-100 bg-[#FAF8F5] px-4 py-3">
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400">
+          <div className="rounded-2xl border border-slate-100 bg-[#FAF8F5] px-4 py-2.5">
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
               SEATS
             </label>
-            <div className="mt-1 flex items-center gap-2">
-              <Users size={16} className="text-slate-400 shrink-0" />
-              <select
-                value={seats}
-                onChange={(e) => setSeats(e.target.value)}
-                className="w-full bg-transparent text-sm font-bold text-[#1E2022] outline-none"
-              >
-                <option value="1">1 Seat</option>
-                <option value="2">2 Seats</option>
-                <option value="3">3 Seats</option>
-                <option value="4">4+ Seats</option>
-              </select>
-            </div>
+            <SeatPicker
+              value={seats}
+              onChange={setSeats}
+              min={1}
+              max={6}
+            />
           </div>
 
           {/* SUBMIT BUTTON */}

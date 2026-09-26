@@ -18,7 +18,16 @@ export const useNotificationStore = create<NotificationState>((set) => ({
   unreadCount: 0,
 
   setNotifications: (notifications) =>
-    set({ notifications }),
+    set({
+      notifications: notifications.map((n) => {
+        const isRead = n.isRead !== undefined ? Boolean(n.isRead) : Boolean(n.read);
+        return {
+          ...n,
+          read: isRead,
+          isRead: isRead,
+        };
+      }),
+    }),
 
   setUnreadCount: (unreadCount) =>
     set({ unreadCount }),
@@ -34,12 +43,23 @@ export const useNotificationStore = create<NotificationState>((set) => ({
         return state;
       }
 
+      const isRead =
+        notification.isRead !== undefined
+          ? Boolean(notification.isRead)
+          : Boolean(notification.read);
+
+      const normalized: Notification = {
+        ...notification,
+        read: isRead,
+        isRead: isRead,
+      };
+
       return {
         notifications: [
-          notification,
+          normalized,
           ...state.notifications,
         ],
-        unreadCount: notification.read
+        unreadCount: normalized.read
           ? state.unreadCount
           : state.unreadCount + 1,
       };
@@ -51,14 +71,18 @@ export const useNotificationStore = create<NotificationState>((set) => ({
         (item) => item._id === notificationId
       );
 
-      if (!notification || notification.read) {
+      const isAlreadyRead = notification
+        ? (notification.isRead !== undefined ? Boolean(notification.isRead) : Boolean(notification.read))
+        : false;
+
+      if (!notification || isAlreadyRead) {
         return state;
       }
 
       return {
         notifications: state.notifications.map((item) =>
           item._id === notificationId
-            ? { ...item, read: true }
+            ? { ...item, read: true, isRead: true }
             : item
         ),
         unreadCount: Math.max(0, state.unreadCount - 1),
@@ -71,6 +95,7 @@ export const useNotificationStore = create<NotificationState>((set) => ({
         (notification) => ({
           ...notification,
           read: true,
+          isRead: true,
         })
       ),
       unreadCount: 0,

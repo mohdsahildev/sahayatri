@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/lib/stores/auth.store";
 import { refreshToken, getMe } from "@/lib/api/auth";
 import {
@@ -13,7 +14,9 @@ export default function AuthProvider({
 }: {
   children: React.ReactNode;
 }) {
+  const router = useRouter();
   const [isRestoring, setIsRestoring] = useState(true);
+  const authInitiatedRef = useRef(false);
 
   const accessToken = useAuthStore(
     (state) => state.accessToken
@@ -28,19 +31,63 @@ export default function AuthProvider({
   );
 
   useEffect(() => {
-    async function restoreSession() {
+    if (authInitiatedRef.current) {
+      return;
+    }
+    authInitiatedRef.current = true;
+
+    async function initializeSession() {
+      // 1. Check if OAuth redirect provided token in URL query
+      if (typeof window !== "undefined") {
+        const searchParams = new URLSearchParams(window.location.search);
+        const oauthToken = searchParams.get("token");
+
+        if (oauthToken) {
+          try {
+            const meResponse = await getMe(oauthToken);
+            if (meResponse?.data?.user) {
+              setAuth(meResponse.data.user, oauthToken);
+
+              // Strip token from browser URL without leaving JWT in history
+              if (window.history.replaceState) {
+                const cleanUrl = new URL(window.location.href);
+                cleanUrl.searchParams.delete("token");
+                cleanUrl.searchParams.delete("name");
+                cleanUrl.searchParams.delete("profilePic");
+                window.history.replaceState(
+                  {},
+                  "",
+                  cleanUrl.pathname === "/"
+                    ? "/home"
+                    : cleanUrl.pathname + cleanUrl.search
+                );
+              }
+
+              router.replace("/home");
+              return;
+            }
+          } catch (error) {
+            console.error("OAuth token verification failed:", error);
+            clearAuth();
+            router.replace("/login?error=google_oauth_failed");
+            return;
+          } finally {
+            setIsRestoring(false);
+          }
+        }
+      }
+
+      // 2. Standard session restoration via refresh-token cookie
       try {
         const refreshResponse = await refreshToken();
+        const token = refreshResponse.data?.accessToken;
 
-        const token =
-          refreshResponse.data.accessToken;
-
-        const meResponse = await getMe(token);
-
-        setAuth(
-          meResponse.data.user,
-          token
-        );
+        if (token) {
+          const meResponse = await getMe(token);
+          if (meResponse?.data?.user) {
+            setAuth(meResponse.data.user, token);
+          }
+        }
       } catch {
         clearAuth();
       } finally {
@@ -48,8 +95,8 @@ export default function AuthProvider({
       }
     }
 
-    restoreSession();
-  }, [setAuth, clearAuth]);
+    initializeSession();
+  }, [setAuth, clearAuth, router]);
 
   useEffect(() => {
     if (!accessToken) {

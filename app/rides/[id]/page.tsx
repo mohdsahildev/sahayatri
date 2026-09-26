@@ -376,15 +376,10 @@ export default async function RideDetailsPage({
           <div className="space-y-6">
             {/* 1. Corridor Journey Card */}
             <article className="rounded-3xl border border-[#EAE6DF] bg-white p-6 sm:p-8 shadow-xs">
-              {/* Header Tag & Route */}
+              {/* Header Route Title */}
               <div className="flex flex-wrap items-center justify-between gap-2 pb-5 border-b border-[#EAE6DF]/60">
                 <div>
-                  <div className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-[#C8522E]">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#C8522E]" />
-                    <span>Corridor Journey</span>
-                  </div>
-
-                  <h1 className="mt-1 font-sans text-2xl sm:text-3xl font-black tracking-tight text-[#1E2022]">
+                  <h1 className="font-sans text-2xl sm:text-3xl font-black tracking-tight text-[#1E2022]">
                     {ride.source.name} <span className="text-[#C8522E]">→</span> {ride.destination.name}
                   </h1>
                 </div>

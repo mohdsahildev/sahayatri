@@ -28,7 +28,9 @@ import {
 } from "@/lib/api/ride-requests";
 import { useAuthStore } from "@/lib/stores/auth.store";
 import { getRideChat } from "@/lib/api/chat";
+import { getSocket } from "@/lib/socket";
 import RideReview from "./ride-review";
+import StartRideModal from "./start-ride-modal";
 
 interface RideActionsProps {
   rideId: string;
@@ -55,8 +57,6 @@ export default function RideActions({
   status,
   seatsLeft,
   price,
-  seatsAvailable,
-  bookedSeats,
 }: RideActionsProps) {
   const router = useRouter();
 
@@ -89,6 +89,9 @@ export default function RideActions({
   );
   const [rideActionLoading, setRideActionLoading] = useState(false);
   const [startPin, setStartPin] = useState<string | null>(null);
+  const [startRideModalOpen, setStartRideModalOpen] = useState(false);
+  const [startWithoutPassengersOption, setStartWithoutPassengersOption] = useState(false);
+  const [startRideError, setStartRideError] = useState("");
 
   useEffect(() => {
     if (!isOwner) return;
@@ -149,27 +152,205 @@ export default function RideActions({
     loadMyRequest();
   }, [isAuthenticated, isOwner, rideId]);
 
-  async function handleJoin() {
-    if (!isAuthenticated || isOwner) return;
+  useEffect(() => {
+    if (!isAuthenticated) return;
 
-    setLoading(true);
-    setError("");
+    const socket = getSocket();
 
-    try {
-      await apiFetch<RideActionResponse>(`/rides/${rideId}/join`, {
-        method: "POST",
-        body: JSON.stringify({ seats }),
-      });
+    const handleJoinRequested = (payload: {
+      request?: RideRequest;
+      rideId?: string;
+    }) => {
+      const eventRideId =
+        payload?.rideId ||
+        (typeof payload?.request?.ride === "string"
+          ? payload?.request?.ride
+          : payload?.request?.ride?._id);
 
-      setJoined(true);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Unable to join this ride"
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
+      if (eventRideId !== rideId) return;
+
+      if (isOwner && payload?.request) {
+        setRequests((current) => {
+          const exists = current.some((r) => r._id === payload.request!._id);
+          if (exists) {
+            return current.map((r) =>
+              r._id === payload.request!._id ? payload.request! : r
+            );
+          }
+          return [payload.request!, ...current];
+        });
+      } else if (!isOwner && payload?.request) {
+        const passengerId =
+          typeof payload.request.passenger === "string"
+            ? payload.request.passenger
+            : payload.request.passenger?._id;
+
+        if (passengerId === user?._id) {
+          setRequestStatus("pending");
+        }
+      }
+    };
+
+    const handleJoinAccepted = (payload: {
+      request?: RideRequest;
+      rideId?: string;
+    }) => {
+      const eventRideId =
+        payload?.rideId ||
+        (typeof payload?.request?.ride === "string"
+          ? payload?.request?.ride
+          : payload?.request?.ride?._id);
+
+      if (eventRideId !== rideId) return;
+
+      if (isOwner && payload?.request) {
+        setRequests((current) =>
+          current.map((r) =>
+            r._id === payload.request!._id ? payload.request! : r
+          )
+        );
+        router.refresh();
+      } else if (!isOwner && payload?.request) {
+        const passengerId =
+          typeof payload.request.passenger === "string"
+            ? payload.request.passenger
+            : payload.request.passenger?._id;
+
+        if (!passengerId || passengerId === user?._id) {
+          setRequestStatus("accepted");
+          if (payload.request.startPin) {
+            setStartPin(payload.request.startPin);
+          }
+          const driver =
+            typeof payload.request.driver === "object" && payload.request.driver
+              ? payload.request.driver
+              : null;
+          const driverUserId =
+            typeof payload.request.driver === "string"
+              ? payload.request.driver
+              : driver?._id;
+
+          if (driverUserId) {
+            setChatPartner({
+              userId: driverUserId,
+              name: driver?.name ?? "Driver",
+            });
+          }
+          router.refresh();
+        }
+      }
+    };
+
+    const handleJoinRejected = (payload: {
+      request?: RideRequest;
+      rideId?: string;
+    }) => {
+      const eventRideId =
+        payload?.rideId ||
+        (typeof payload?.request?.ride === "string"
+          ? payload?.request?.ride
+          : payload?.request?.ride?._id);
+
+      if (eventRideId !== rideId) return;
+
+      if (isOwner && payload?.request) {
+        setRequests((current) =>
+          current.map((r) =>
+            r._id === payload.request!._id
+              ? { ...r, status: payload.request!.status || "rejected" }
+              : r
+          )
+        );
+        router.refresh();
+      } else if (!isOwner && payload?.request) {
+        const passengerId =
+          typeof payload.request.passenger === "string"
+            ? payload.request.passenger
+            : payload.request.passenger?._id;
+
+        if (!passengerId || passengerId === user?._id) {
+          setRequestStatus(payload.request.status || "rejected");
+          setStartPin(null);
+          router.refresh();
+        }
+      }
+    };
+
+    const handlePassengerVerified = (payload: {
+      request?: RideRequest;
+      rideId?: string;
+      requestId?: string;
+      passengerId?: string;
+    }) => {
+      const eventRideId =
+        payload?.rideId ||
+        (typeof payload?.request?.ride === "string"
+          ? payload?.request?.ride
+          : payload?.request?.ride?._id);
+
+      if (eventRideId !== rideId) return;
+
+      if (isOwner && (payload?.requestId || payload?.request?._id)) {
+        const targetId = payload?.requestId || payload?.request?._id;
+        setRequests((current) =>
+          current.map((r) =>
+            r._id === targetId
+              ? { ...r, verifiedBoarding: true, pinVerified: true }
+              : r
+          )
+        );
+      }
+      router.refresh();
+    };
+
+    const handleRideUpdated = (payload: {
+      ride?: { _id?: string };
+      rideId?: string;
+    }) => {
+      const eventRideId = payload?.rideId || payload?.ride?._id;
+      if (eventRideId === rideId) {
+        router.refresh();
+      }
+    };
+
+    const handleRideStarted = (payload: {
+      ride?: { _id?: string };
+      rideId?: string;
+    }) => {
+      const eventRideId = payload?.rideId || payload?.ride?._id;
+      if (eventRideId === rideId) {
+        router.refresh();
+      }
+    };
+
+    const handleRideCancelled = (payload: {
+      ride?: { _id?: string };
+      rideId?: string;
+    }) => {
+      const eventRideId = payload?.rideId || payload?.ride?._id;
+      if (eventRideId === rideId) {
+        router.refresh();
+      }
+    };
+
+    socket.on("ride_join_requested", handleJoinRequested);
+    socket.on("ride_join_accepted", handleJoinAccepted);
+    socket.on("ride_join_rejected", handleJoinRejected);
+    socket.on("passenger_verified", handlePassengerVerified);
+    socket.on("ride_updated", handleRideUpdated);
+    socket.on("ride_started", handleRideStarted);
+    socket.on("ride_cancelled", handleRideCancelled);
+
+    return () => {
+      socket.off("ride_join_requested", handleJoinRequested);
+      socket.off("ride_join_accepted", handleJoinAccepted);
+      socket.off("ride_join_rejected", handleJoinRejected);
+      socket.off("passenger_verified", handlePassengerVerified);
+      socket.off("ride_updated", handleRideUpdated);
+      socket.off("ride_started", handleRideStarted);
+      socket.off("ride_cancelled", handleRideCancelled);
+    };
+  }, [isAuthenticated, isOwner, rideId, router, user?._id]);
 
   async function handleRequest() {
     if (!isAuthenticated || isOwner) return;
@@ -354,7 +535,7 @@ export default function RideActions({
         method: "DELETE",
       });
 
-      window.location.href = "/home";
+      router.push("/home");
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Unable to cancel this ride"
@@ -364,29 +545,28 @@ export default function RideActions({
     }
   }
 
-  async function handleStartRide(startWithoutPassengers = false) {
-    const confirmed = window.confirm(
-      startWithoutPassengers
-        ? "Start this ride without the accepted passengers? They will be marked as no-shows."
-        : "Are you sure you want to start this ride?"
-    );
+  function openStartRideModal(startWithoutPassengers = false) {
+    setStartWithoutPassengersOption(startWithoutPassengers);
+    setStartRideError("");
+    setStartRideModalOpen(true);
+  }
 
-    if (!confirmed) return;
-
+  async function handleConfirmStartRide() {
     setRideActionLoading(true);
-    setError("");
+    setStartRideError("");
 
     try {
       await apiFetch(`/rides/${rideId}/start`, {
         method: "PUT",
         body: JSON.stringify({
-          startWithoutPassengers,
+          startWithoutPassengers: startWithoutPassengersOption,
         }),
       });
 
+      setStartRideModalOpen(false);
       router.refresh();
     } catch (err) {
-      setError(
+      setStartRideError(
         err instanceof Error ? err.message : "Unable to start ride."
       );
     } finally {
@@ -492,12 +672,12 @@ export default function RideActions({
                 {/* Primary Action: Start Ride */}
                 <button
                   type="button"
-                  onClick={() => handleStartRide(false)}
+                  onClick={() => openStartRideModal(false)}
                   disabled={rideActionLoading}
                   className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#C8522E] px-4 py-3 font-sans text-xs font-bold text-white shadow-xs transition hover:bg-[#B34524] active:scale-98 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Play size={14} />
-                  <span>{rideActionLoading ? "Starting ride..." : "Start Ride"}</span>
+                  <span>Start Ride</span>
                 </button>
 
                 {/* Secondary Warning Action: Start without passengers */}
@@ -509,7 +689,7 @@ export default function RideActions({
                 ) && (
                   <button
                     type="button"
-                    onClick={() => handleStartRide(true)}
+                    onClick={() => openStartRideModal(true)}
                     disabled={rideActionLoading}
                     className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50/50 px-4 py-2 font-sans text-xs font-bold text-amber-900 transition hover:bg-amber-100 disabled:opacity-50"
                   >
@@ -996,6 +1176,32 @@ export default function RideActions({
           {error}
         </div>
       )}
+
+      {/* Start Ride Confirmation In-App Modal */}
+      <StartRideModal
+        isOpen={startRideModalOpen}
+        onClose={() => {
+          if (!rideActionLoading) {
+            setStartRideModalOpen(false);
+            setStartRideError("");
+          }
+        }}
+        onConfirm={handleConfirmStartRide}
+        isLoading={rideActionLoading}
+        error={startRideError}
+        startWithoutPassengers={startWithoutPassengersOption}
+        acceptedPassengersCount={
+          requests.filter((r) => r.status === "accepted").length
+        }
+        unverifiedPassengersCount={
+          requests.filter(
+            (r) =>
+              r.status === "accepted" &&
+              !r.verifiedBoarding &&
+              !r.pinVerified
+          ).length
+        }
+      />
     </aside>
   );
 }

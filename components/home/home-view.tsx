@@ -1,11 +1,14 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import HeroMap from "./hero-map";
 import RideSearch from "./ride-search";
 import NearbyRides from "./nearby-rides";
 import RideFilters from "./ride-filters";
 import RideFeed from "./ride-feed";
 import type { Ride } from "./ride-card";
+import { getSocket } from "@/lib/socket";
 
 interface HomeViewProps {
   rides: Ride[];
@@ -20,8 +23,27 @@ export default function HomeView({
   totalPages,
   searchParams,
 }: HomeViewProps) {
+  const router = useRouter();
   const from = searchParams.from;
   const to = searchParams.to;
+
+  useEffect(() => {
+    const socket = getSocket();
+
+    const handleRefresh = () => {
+      router.refresh();
+    };
+
+    socket.on("ride_created", handleRefresh);
+    socket.on("ride_updated", handleRefresh);
+    socket.on("ride_cancelled", handleRefresh);
+
+    return () => {
+      socket.off("ride_created", handleRefresh);
+      socket.off("ride_updated", handleRefresh);
+      socket.off("ride_cancelled", handleRefresh);
+    };
+  }, [router]);
 
   return (
     <div className="space-y-6">

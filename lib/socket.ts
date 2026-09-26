@@ -6,15 +6,19 @@ let socket: Socket | null = null;
 
 export function getSocket() {
   if (!socket) {
-    socket = io({
-      path: "/api/socket.io",
-      transports: ["polling"],
+    const SOCKET_URL =
+      process.env.NEXT_PUBLIC_SOCKET_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      "https://sahayatri-p95g.onrender.com";
+
+    socket = io(SOCKET_URL, {
+      transports: ["websocket", "polling"],
       autoConnect: false,
     });
 
-    socket.on("connect", () => {});
+    socket.on("connect", () => { });
 
-    socket.on("disconnect", (reason) => {});
+    socket.on("disconnect", () => { });
 
     socket.on("connect_error", (error) => {
       console.error(
@@ -60,6 +64,14 @@ export function getSocket() {
         useNotificationStore
           .getState()
           .setUnreadCount(count);
+      }
+    });
+
+    socket.on("notification:read", (payload) => {
+      if (payload?.all) {
+        useNotificationStore.getState().markAllAsRead();
+      } else if (payload?.notificationId) {
+        useNotificationStore.getState().markAsRead(payload.notificationId);
       }
     });
   }

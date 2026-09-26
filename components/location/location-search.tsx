@@ -149,13 +149,13 @@ export default function LocationSearch({
             }
           }}
           placeholder={placeholder}
-          className="w-full bg-transparent text-sm text-secondary outline-none placeholder:text-slate-400"
+          className="w-full bg-transparent text-sm text-[#1E2022] outline-none placeholder:text-slate-400"
         />
 
         {loading && (
           <Loader2
             size={16}
-            className="shrink-0 animate-spin text-primary"
+            className="shrink-0 animate-spin text-[#C8522E]"
           />
         )}
       </div>
@@ -170,14 +170,14 @@ export default function LocationSearch({
                 onClick={() =>
                   handleSelect(location)
                 }
-                className="flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-neutral"
+                className="flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-[#FAF8F5]"
               >
                 <MapPin
                   size={16}
-                  className="mt-0.5 shrink-0 text-primary"
+                  className="mt-0.5 shrink-0 text-[#C8522E]"
                 />
 
-                <span className="text-sm text-secondary">
+                <span className="text-sm text-[#1E2022]">
                   {location.name}
                 </span>
               </button>

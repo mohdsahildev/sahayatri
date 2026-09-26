@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarDays, MapPin, Search, ArrowRightLeft } from "lucide-react";
+import { MapPin, Search, ArrowRightLeft } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import LocationSearch from "@/components/location/location-search";
+import DatePicker from "@/components/ui/date-picker";
+import SeatPicker from "@/components/ui/seat-picker";
 
 export default function RideSearch() {
   const router = useRouter();
@@ -127,14 +129,13 @@ export default function RideSearch() {
             <span className="block font-sans text-[10px] font-bold uppercase tracking-wider text-slate-400">
               DEPARTURE
             </span>
-            <div className="mt-2 flex h-11 items-center gap-1.5 rounded-xl bg-white px-3 border border-slate-100 shadow-2xs">
-              <CalendarDays size={18} className="shrink-0 text-slate-500" />
-              <input
-                type="date"
+            <div className="mt-2 flex h-11 items-center rounded-xl bg-white px-3 border border-slate-100 shadow-2xs">
+              <DatePicker
                 value={date}
-                onChange={(e) => setDate(e.target.value)}
-                min={new Date().toISOString().split("T")[0]}
-                className="w-full bg-transparent font-sans text-sm font-semibold text-[#1E2022] outline-none cursor-pointer min-w-0"
+                onChange={setDate}
+                minDate={new Date().toISOString().split("T")[0]}
+                placeholder="Choose date"
+                allowClear
               />
             </div>
           </div>
@@ -145,16 +146,12 @@ export default function RideSearch() {
               SEATS
             </span>
             <div className="mt-2 flex h-11 items-center rounded-xl bg-white px-3.5 border border-slate-100 shadow-2xs">
-              <select
+              <SeatPicker
                 value={minSeats}
-                onChange={(e) => setMinSeats(e.target.value)}
-                className="w-full bg-transparent font-sans text-sm font-semibold text-[#1E2022] outline-none cursor-pointer"
-              >
-                <option value="1">1 Seat</option>
-                <option value="2">2 Seats</option>
-                <option value="3">3 Seats</option>
-                <option value="4">4 Seats</option>
-              </select>
+                onChange={setMinSeats}
+                min={1}
+                max={6}
+              />
             </div>
           </div>
 
