@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -97,23 +97,44 @@ export default function RideActions({
   const [endRideModalOpen, setEndRideModalOpen] = useState(false);
   const [completeRideModalOpen, setCompleteRideModalOpen] = useState(false);
 
-  useEffect(() => {
+  const loadRequests = useCallback(async () => {
     if (!isOwner) return;
 
-    async function loadRequests() {
-      setRequestsLoading(true);
+    setRequestsLoading(true);
 
-      try {
-        const response = await getRideRequests(rideId);
-        setRequests(response.data.requests ?? []);
-      } catch (err) {
-        console.error("Unable to load ride requests:", err);
-      } finally {
-        setRequestsLoading(false);
-      }
+    try {
+      const response = await getRideRequests(rideId);
+      setRequests(response.data.requests ?? []);
+    } catch (err) {
+      console.error("Unable to load ride requests:", err);
+    } finally {
+      setRequestsLoading(false);
+    }
+  }, [isOwner, rideId]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (isOwner) {
+      getRideRequests(rideId)
+        .then((response) => {
+          if (isMounted) {
+            setRequests(response.data.requests ?? []);
+          }
+        })
+        .catch((err) => {
+          console.error("Unable to load ride requests:", err);
+        })
+        .finally(() => {
+          if (isMounted) {
+            setRequestsLoading(false);
+          }
+        });
     }
 
-    loadRequests();
+    return () => {
+      isMounted = false;
+    };
   }, [isOwner, rideId, status]);
 
   useEffect(() => {
@@ -183,6 +204,7 @@ export default function RideActions({
           }
           return [payload.request!, ...current];
         });
+        loadRequests();
       } else if (!isOwner && payload?.request) {
         const passengerId =
           typeof payload.request.passenger === "string"
@@ -391,6 +413,11 @@ export default function RideActions({
       }
     };
 
+    const handleConnect = () => {
+      loadRequests();
+    };
+
+    socket.on("connect", handleConnect);
     socket.on("ride_join_requested", handleJoinRequested);
     socket.on("ride_join_accepted", handleJoinAccepted);
     socket.on("ride_join_rejected", handleJoinRejected);
@@ -404,6 +431,7 @@ export default function RideActions({
     socket.on("ride_cancelled", handleRideCancelled);
 
     return () => {
+      socket.off("connect", handleConnect);
       socket.off("ride_join_requested", handleJoinRequested);
       socket.off("ride_join_accepted", handleJoinAccepted);
       socket.off("ride_join_rejected", handleJoinRejected);
@@ -416,7 +444,7 @@ export default function RideActions({
       socket.off("ride_completed", handleRideCompleted);
       socket.off("ride_cancelled", handleRideCancelled);
     };
-  }, [isAuthenticated, isOwner, rideId, router, user?._id]);
+  }, [isAuthenticated, isOwner, loadRequests, rideId, router, user?._id]);
 
   async function handleRequest() {
     if (!isAuthenticated || isOwner) return;
