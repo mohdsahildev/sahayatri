@@ -37,11 +37,19 @@ export default function HomeView({
     socket.on("ride_created", handleRefresh);
     socket.on("ride_updated", handleRefresh);
     socket.on("ride_cancelled", handleRefresh);
+    socket.on("ride_started", handleRefresh);
+    socket.on("ride_ended", handleRefresh);
+    socket.on("ride_completed", handleRefresh);
+    socket.on("ride_join_accepted", handleRefresh);
 
     return () => {
       socket.off("ride_created", handleRefresh);
       socket.off("ride_updated", handleRefresh);
       socket.off("ride_cancelled", handleRefresh);
+      socket.off("ride_started", handleRefresh);
+      socket.off("ride_ended", handleRefresh);
+      socket.off("ride_completed", handleRefresh);
+      socket.off("ride_join_accepted", handleRefresh);
     };
   }, [router]);
 

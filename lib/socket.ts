@@ -12,7 +12,7 @@ export function getSocket() {
       "https://sahayatri-p95g.onrender.com";
 
     socket = io(SOCKET_URL, {
-      transports: ["websocket", "polling"],
+      transports: ["polling"],
       autoConnect: false,
     });
 

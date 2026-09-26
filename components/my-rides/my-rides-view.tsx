@@ -34,8 +34,13 @@ export default function MyRidesView({
     socket.on("ride_updated", handleRefresh);
     socket.on("ride_cancelled", handleRefresh);
     socket.on("ride_started", handleRefresh);
+    socket.on("ride_ended", handleRefresh);
+    socket.on("ride_completed", handleRefresh);
+    socket.on("ride_join_requested", handleRefresh);
     socket.on("ride_join_accepted", handleRefresh);
     socket.on("ride_join_rejected", handleRefresh);
+    socket.on("ride_join_cancelled", handleRefresh);
+    socket.on("ride_request_cancelled", handleRefresh);
     socket.on("passenger_verified", handleRefresh);
 
     return () => {
@@ -43,8 +48,13 @@ export default function MyRidesView({
       socket.off("ride_updated", handleRefresh);
       socket.off("ride_cancelled", handleRefresh);
       socket.off("ride_started", handleRefresh);
+      socket.off("ride_ended", handleRefresh);
+      socket.off("ride_completed", handleRefresh);
+      socket.off("ride_join_requested", handleRefresh);
       socket.off("ride_join_accepted", handleRefresh);
       socket.off("ride_join_rejected", handleRefresh);
+      socket.off("ride_join_cancelled", handleRefresh);
+      socket.off("ride_request_cancelled", handleRefresh);
       socket.off("passenger_verified", handleRefresh);
     };
   }, [router]);

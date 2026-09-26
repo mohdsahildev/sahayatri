@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { LogOut, X } from "lucide-react";
+import { LogOut, X, AlertTriangle } from "lucide-react";
 import {
   cancelRide,
   leaveRide,
 } from "@/lib/api/rides-client";
+import ConfirmModal from "@/components/ui/confirm-modal";
 
 interface MyRideActionsProps {
   rideId: string;
@@ -23,6 +24,7 @@ export default function MyRideActions({
 }: MyRideActionsProps) {
   const router = useRouter();
 
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -36,14 +38,13 @@ export default function MyRideActions({
     return null;
   }
 
-  async function handleAction() {
-    const confirmed = window.confirm(
-      isCreated
-        ? "Are you sure you want to cancel this ride?"
-        : "Are you sure you want to leave this ride?"
-    );
+  function handleOpenConfirm() {
+    setError("");
+    setConfirmOpen(true);
+  }
 
-    if (!confirmed || loading) return;
+  async function handleConfirmAction() {
+    if (loading) return;
 
     setLoading(true);
     setError("");
@@ -58,15 +59,18 @@ export default function MyRideActions({
         await leaveRide(rideId);
       }
 
+      setConfirmOpen(false);
       router.refresh();
-    } catch (error) {
+    } catch (err) {
       console.error(
         "Unable to update ride:",
-        error
+        err
       );
 
       setError(
-        isCreated
+        err instanceof Error
+          ? err.message
+          : isCreated
           ? "Unable to cancel the ride."
           : "Unable to leave the ride."
       );
@@ -84,7 +88,7 @@ export default function MyRideActions({
     >
       <button
         type="button"
-        onClick={handleAction}
+        onClick={handleOpenConfirm}
         disabled={loading}
         className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-rose-200 px-4 py-2.5 font-sans text-xs font-bold text-rose-600 transition hover:bg-rose-50 active:scale-98 disabled:cursor-not-allowed disabled:opacity-50"
       >
@@ -94,18 +98,38 @@ export default function MyRideActions({
           <LogOut size={14} />
         )}
 
-        {loading
-          ? "Processing..."
-          : isCreated
-            ? "Cancel Ride"
-            : "Leave Ride"}
+        {isCreated ? "Cancel Ride" : "Leave Ride"}
       </button>
 
-      {error && (
+      {error && !confirmOpen && (
         <p className="mt-1 text-center text-[11px] font-medium text-rose-600">
           {error}
         </p>
       )}
+
+      <ConfirmModal
+        isOpen={confirmOpen}
+        onClose={() => {
+          if (!loading) {
+            setConfirmOpen(false);
+            setError("");
+          }
+        }}
+        onConfirm={handleConfirmAction}
+        isLoading={loading}
+        title={isCreated ? "Cancel This Ride?" : "Leave This Ride?"}
+        description={
+          isCreated
+            ? "Cancelling this ride will notify all co-travelers and withdraw it from the available rides feed."
+            : "Leaving this ride will release your reserved seat back to the community."
+        }
+        confirmText={isCreated ? "Yes, Cancel Ride" : "Yes, Leave Ride"}
+        cancelText="Never mind"
+        variant="danger"
+        category={isCreated ? "Driver Ride Action" : "Passenger Ride Action"}
+        icon={isCreated ? <X size={24} /> : <AlertTriangle size={24} />}
+        error={error}
+      />
     </div>
   );
-}
+}

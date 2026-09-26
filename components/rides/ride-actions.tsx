@@ -31,6 +31,7 @@ import { getRideChat } from "@/lib/api/chat";
 import { getSocket } from "@/lib/socket";
 import RideReview from "./ride-review";
 import StartRideModal from "./start-ride-modal";
+import ConfirmModal from "@/components/ui/confirm-modal";
 
 interface RideActionsProps {
   rideId: string;
@@ -92,6 +93,9 @@ export default function RideActions({
   const [startRideModalOpen, setStartRideModalOpen] = useState(false);
   const [startWithoutPassengersOption, setStartWithoutPassengersOption] = useState(false);
   const [startRideError, setStartRideError] = useState("");
+  const [cancelRideModalOpen, setCancelRideModalOpen] = useState(false);
+  const [endRideModalOpen, setEndRideModalOpen] = useState(false);
+  const [completeRideModalOpen, setCompleteRideModalOpen] = useState(false);
 
   useEffect(() => {
     if (!isOwner) return;
@@ -303,6 +307,40 @@ export default function RideActions({
       router.refresh();
     };
 
+    const handleJoinCancelled = (payload: {
+      request?: RideRequest;
+      requestId?: string;
+      rideId?: string;
+    }) => {
+      const eventRideId =
+        payload?.rideId ||
+        (typeof payload?.request?.ride === "string"
+          ? payload?.request?.ride
+          : payload?.request?.ride?._id);
+
+      if (eventRideId && eventRideId !== rideId) return;
+
+      const targetRequestId = payload?.requestId || payload?.request?._id;
+
+      if (isOwner && targetRequestId) {
+        setRequests((current) =>
+          current.filter((r) => r._id !== targetRequestId)
+        );
+        router.refresh();
+      } else if (!isOwner && payload?.request) {
+        const passengerId =
+          typeof payload.request.passenger === "string"
+            ? payload.request.passenger
+            : payload.request.passenger?._id;
+
+        if (!passengerId || passengerId === user?._id) {
+          setRequestStatus("cancelled");
+          setStartPin(null);
+          router.refresh();
+        }
+      }
+    };
+
     const handleRideUpdated = (payload: {
       ride?: { _id?: string };
       rideId?: string;
@@ -314,6 +352,26 @@ export default function RideActions({
     };
 
     const handleRideStarted = (payload: {
+      ride?: { _id?: string };
+      rideId?: string;
+    }) => {
+      const eventRideId = payload?.rideId || payload?.ride?._id;
+      if (eventRideId === rideId) {
+        router.refresh();
+      }
+    };
+
+    const handleRideEnded = (payload: {
+      ride?: { _id?: string };
+      rideId?: string;
+    }) => {
+      const eventRideId = payload?.rideId || payload?.ride?._id;
+      if (eventRideId === rideId) {
+        router.refresh();
+      }
+    };
+
+    const handleRideCompleted = (payload: {
       ride?: { _id?: string };
       rideId?: string;
     }) => {
@@ -336,18 +394,26 @@ export default function RideActions({
     socket.on("ride_join_requested", handleJoinRequested);
     socket.on("ride_join_accepted", handleJoinAccepted);
     socket.on("ride_join_rejected", handleJoinRejected);
+    socket.on("ride_join_cancelled", handleJoinCancelled);
+    socket.on("ride_request_cancelled", handleJoinCancelled);
     socket.on("passenger_verified", handlePassengerVerified);
     socket.on("ride_updated", handleRideUpdated);
     socket.on("ride_started", handleRideStarted);
+    socket.on("ride_ended", handleRideEnded);
+    socket.on("ride_completed", handleRideCompleted);
     socket.on("ride_cancelled", handleRideCancelled);
 
     return () => {
       socket.off("ride_join_requested", handleJoinRequested);
       socket.off("ride_join_accepted", handleJoinAccepted);
       socket.off("ride_join_rejected", handleJoinRejected);
+      socket.off("ride_join_cancelled", handleJoinCancelled);
+      socket.off("ride_request_cancelled", handleJoinCancelled);
       socket.off("passenger_verified", handlePassengerVerified);
       socket.off("ride_updated", handleRideUpdated);
       socket.off("ride_started", handleRideStarted);
+      socket.off("ride_ended", handleRideEnded);
+      socket.off("ride_completed", handleRideCompleted);
       socket.off("ride_cancelled", handleRideCancelled);
     };
   }, [isAuthenticated, isOwner, rideId, router, user?._id]);
@@ -397,6 +463,7 @@ export default function RideActions({
 
       await cancelRideRequest(currentRequest._id);
       setRequestStatus("cancelled");
+      router.refresh();
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Unable to cancel request"
@@ -492,6 +559,8 @@ export default function RideActions({
           request._id === requestId ? response.data.request : request
         )
       );
+
+      router.refresh();
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Unable to reject request"
@@ -520,13 +589,7 @@ export default function RideActions({
     }
   }
 
-  async function handleCancel() {
-    const confirmed = window.confirm(
-      "Are you sure you want to cancel this ride?"
-    );
-
-    if (!confirmed) return;
-
+  async function handleConfirmCancelRide() {
     setLoading(true);
     setError("");
 
@@ -535,6 +598,7 @@ export default function RideActions({
         method: "DELETE",
       });
 
+      setCancelRideModalOpen(false);
       router.push("/home");
     } catch (err) {
       setError(
@@ -574,13 +638,7 @@ export default function RideActions({
     }
   }
 
-  async function handleEndRide() {
-    const confirmed = window.confirm(
-      "Are you sure you want to end this ride?"
-    );
-
-    if (!confirmed) return;
-
+  async function handleConfirmEndRide() {
     setRideActionLoading(true);
     setError("");
 
@@ -589,6 +647,7 @@ export default function RideActions({
         method: "PUT",
       });
 
+      setEndRideModalOpen(false);
       router.refresh();
     } catch (err) {
       setError(
@@ -599,13 +658,7 @@ export default function RideActions({
     }
   }
 
-  async function handleCompleteRide() {
-    const confirmed = window.confirm(
-      "Mark this ride as completed? This will allow participants to leave reviews."
-    );
-
-    if (!confirmed) return;
-
+  async function handleConfirmCompleteRide() {
     setRideActionLoading(true);
     setError("");
 
@@ -614,6 +667,7 @@ export default function RideActions({
         method: "PUT",
       });
 
+      setCompleteRideModalOpen(false);
       router.refresh();
     } catch (err) {
       setError(
@@ -709,12 +763,15 @@ export default function RideActions({
 
                   <button
                     type="button"
-                    onClick={handleCancel}
+                    onClick={() => {
+                      setError("");
+                      setCancelRideModalOpen(true);
+                    }}
                     disabled={loading}
                     className="inline-flex items-center gap-1.5 text-rose-600 transition hover:text-rose-700 disabled:opacity-50"
                   >
                     <X size={13} />
-                    <span>{loading ? "Cancelling..." : "Cancel ride"}</span>
+                    <span>Cancel ride</span>
                   </button>
                 </div>
               </>
@@ -724,12 +781,15 @@ export default function RideActions({
               <div className="space-y-3">
                 <button
                   type="button"
-                  onClick={handleEndRide}
+                  onClick={() => {
+                    setError("");
+                    setEndRideModalOpen(true);
+                  }}
                   disabled={rideActionLoading}
                   className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#1E2022] px-4 py-3 font-sans text-xs font-bold text-white shadow-xs transition hover:bg-slate-800 disabled:opacity-50"
                 >
                   <Square size={14} />
-                  <span>{rideActionLoading ? "Ending ride..." : "End Ride"}</span>
+                  <span>End Ride</span>
                 </button>
               </div>
             )}
@@ -737,12 +797,15 @@ export default function RideActions({
             {status === "ended" && (
               <button
                 type="button"
-                onClick={handleCompleteRide}
+                onClick={() => {
+                  setError("");
+                  setCompleteRideModalOpen(true);
+                }}
                 disabled={rideActionLoading}
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#C8522E] px-4 py-3 font-sans text-xs font-bold text-white shadow-xs transition hover:bg-[#B34524] disabled:opacity-50"
               >
                 <CheckCircle size={14} />
-                <span>{rideActionLoading ? "Completing..." : "Complete Ride"}</span>
+                <span>Complete Ride</span>
               </button>
             )}
 
@@ -1201,6 +1264,68 @@ export default function RideActions({
               !r.pinVerified
           ).length
         }
+      />
+      {/* Cancel Ride Confirmation In-App Modal */}
+      <ConfirmModal
+        isOpen={cancelRideModalOpen}
+        onClose={() => {
+          if (!loading) {
+            setCancelRideModalOpen(false);
+            setError("");
+          }
+        }}
+        onConfirm={handleConfirmCancelRide}
+        isLoading={loading}
+        title="Cancel This Ride?"
+        description="Are you sure you want to cancel this ride? This will notify all co-travelers and withdraw it from the available rides feed."
+        confirmText="Yes, Cancel Ride"
+        cancelText="Keep Ride"
+        variant="danger"
+        category="Ride Management"
+        icon={<X size={24} />}
+        error={error}
+      />
+
+      {/* End Ride Confirmation In-App Modal */}
+      <ConfirmModal
+        isOpen={endRideModalOpen}
+        onClose={() => {
+          if (!rideActionLoading) {
+            setEndRideModalOpen(false);
+            setError("");
+          }
+        }}
+        onConfirm={handleConfirmEndRide}
+        isLoading={rideActionLoading}
+        title="End This Ride?"
+        description="Are you sure you want to end this ride? This marks the journey as concluded at your destination."
+        confirmText="Yes, End Ride"
+        cancelText="Continue Ride"
+        variant="dark"
+        category="Ride Lifecycle"
+        icon={<Square size={22} />}
+        error={error}
+      />
+
+      {/* Complete Ride Confirmation In-App Modal */}
+      <ConfirmModal
+        isOpen={completeRideModalOpen}
+        onClose={() => {
+          if (!rideActionLoading) {
+            setCompleteRideModalOpen(false);
+            setError("");
+          }
+        }}
+        onConfirm={handleConfirmCompleteRide}
+        isLoading={rideActionLoading}
+        title="Complete This Ride?"
+        description="Mark this ride as completed? This will allow participants to leave reviews and finalize the trip history."
+        confirmText="Yes, Complete Ride"
+        cancelText="Not Yet"
+        variant="primary"
+        category="Ride Lifecycle"
+        icon={<CheckCircle size={22} />}
+        error={error}
       />
     </aside>
   );

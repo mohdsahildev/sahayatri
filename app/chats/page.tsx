@@ -122,7 +122,7 @@ export default function ChatsPage() {
     return () => {
       socket.off("notification:new", handleNotification);
     };
-  }, []);
+  }, [isAuthenticated]);
 
   function getOtherParticipant(chat: Chat) {
     return (chat.participants ?? []).find(
